@@ -1,0 +1,3 @@
+[submodule "libcspm"]
+  path = libcspm
+  url = https://github.com/tomgr/libcspm

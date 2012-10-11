@@ -70,9 +70,16 @@ transitions :: UProc -> [(Event, UProc)]
 -- pairs.
 transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
                   [(Event, UProc)]
+-- As transitionsMap, but also takes a second function to filter the results.
+-- This function also has access to the process index.
+transitionsMapFilter :: (Int -> (Event, UProc) -> (Event, UProc)) ->
+                        (Int -> (Event, UProc) -> Bool) -> S.Seq UProc ->
+                        [(Event, UProc)]
 
 transitionsMap f =
-  F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
+  transitionsMapFilter f (\_ _ -> True)
+transitionsMapFilter f g =
+  F.concat . (S.mapWithIndex (\n p -> filter (g n) (map (f n) (transitions p))))
 
 -- The transitions for an alphabetized parallel process are the transitions
 -- resulting from the events offered by each process in parallel, minus those
@@ -82,9 +89,10 @@ transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
   -- All events involved in synchronization. Don't want duplication - use a set.
   where sevs = F.foldr (\a evs -> F.foldr Set.insert evs a) Set.empty as
   -- Transitions involving events not in the alphabet for any process.
-        frees = filter (((flip Set.notMember) sevs) . fst) $
-          transitionsMap alphaPar ps
+        frees = transitionsMapFilter alphaPar freeFilter ps
         alphaPar n (ev, pn) = (ev, POp (PAlphaParallel as) (S.update n pn ps))
+        freeFilter n (ev, _) =
+          (Set.notMember ev sevs) || (F.notElem ev (S.index as n))
   -- Other events: allow only if all processes that synchronize on the event
   -- offer it. Map each event to Just the resulting transition, or Nothing if
   -- the event is blocked. To do this, we reduce from ps, updating each process

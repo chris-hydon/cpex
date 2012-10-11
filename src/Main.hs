@@ -57,16 +57,19 @@ main = do
         Right _ -> liftIO $ putStrLn $ "Ok"
     return ()
 
--- Given a sequence and two values, return a sequence with the first value
--- replaced by the second, the first time it is encountered.
-replace :: Eq a => S.Seq a -> a -> a -> S.Seq a
-replace xs x xn = update (S.elemIndexL x xs) xn xs
-  where update Nothing _ xs = xs
-        update (Just i) xn xs = S.update i xn xs
-
 -- | Given a process, returns a list of transitions that the process has,
 -- represented as a pair of (event, resulting process)
 transitions :: UProc -> [(Event, UProc)]
+
+-- Given a function (Int -> (Event, UProc) -> (Event, UProc) and a sequence of
+-- UProcs, finds all transitions available to each UProc in the sequence and
+-- applies the function to each, returning a list of resulting (Event, UProc)
+-- pairs.
+transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
+                  [(Event, UProc)]
+
+transitionsMap f ps =
+  F.concat $ S.mapWithIndex (\n p -> map (f n) (transitions p)) ps
 
 --transitions (POp (PAlphaParallel evs) ps)
 
@@ -74,13 +77,9 @@ transitions :: UProc -> [(Event, UProc)]
 
 -- The transitions for external choice are to perform some event and move to the
 -- resulting process, and the processes resulting from each tau event.
-transitions (POp PExternalChoice ps) =
-  concatMap externalchoice (F.toList ps)
-  where externalchoice p = map (withTau p) $ transitions p
-        -- Tau event: keep the other external choices.
-        withTau p (Tau, pn) = (Tau, POp PExternalChoice (replace ps p pn))
-        -- Other event: discard the other choices.
-        withTau _ (ev, pn) = (ev, pn)
+transitions (POp PExternalChoice ps) = transitionsMap fixTau ps
+  where fixTau n (Tau, pn) = (Tau, POp PExternalChoice (S.update n pn ps))
+        fixTau _ (ev, pn) = (ev, pn)
 
 --transitions (POp (PGenParallel evs) ps)
 
@@ -99,9 +98,7 @@ transitions (POp PInternalChoice ps) = [(Tau, p) | p <- (F.toList ps)]
 -- The transitions for an interleaved process are the transitions resulting from
 -- the events offered by each process in parallel.
 transitions (POp PInterleave ps) =
-  concatMap (
-    \p -> map (\(ev, pn) -> (ev, POp PInterleave (replace ps p pn))) (transitions p)
-  ) (F.toList ps)
+  transitionsMap (\n (ev, pn) -> (ev, POp PInterleave (S.update n pn ps))) ps
 
 --transitions (PBinaryOp PInterrupt p1 p2)
 

@@ -1,0 +1,106 @@
+Name: probe
+Category: Concurrency
+Build-type: Simple
+Cabal-version: >=1.9.2
+Version: 0.0.1
+
+Library
+    Build-Depends:
+        array >= 0.3, 
+        base >= 4 && < 5,
+        bytestring >= 0.9,
+        containers >= 0.4, 
+        directory >= 1.0,
+        filepath >= 1.2, 
+        graph-wrapper >= 0.2,
+        hashable >= 1.1,
+        hashtables >= 1.0,
+        mtl >= 2.0, 
+        pretty >= 1.1,
+        text >= 0.11,
+        value-supply >= 0.6
+
+    Exposed-Modules:
+        CSPM,
+        CSPM.DataStructures.FreeVars,
+        CSPM.DataStructures.Literals,
+        CSPM.DataStructures.Names,
+        CSPM.DataStructures.Syntax,
+        CSPM.DataStructures.Types,
+        CSPM.Desugar,
+        CSPM.Evaluator,
+        CSPM.Evaluator.BuiltInFunctions,
+        CSPM.Evaluator.DeclBind,
+        CSPM.Evaluator.Dot,
+        CSPM.Evaluator.Environment,
+        CSPM.Evaluator.Exceptions,
+        CSPM.Evaluator.Expr,
+        CSPM.Evaluator.File,
+        CSPM.Evaluator.Monad,
+        CSPM.Evaluator.PatBind,
+        CSPM.Evaluator.ProcessValues,
+        CSPM.Evaluator.Values,
+        CSPM.Evaluator.ValueSet,
+        CSPM.Evaluator.ValuePrettyPrinter,
+        CSPM.Parser,
+        CSPM.Parser.Exceptions,
+        CSPM.Parser.Lexer,
+        CSPM.Parser.Monad,
+        CSPM.Parser.Parser,
+        CSPM.Parser.Tokens,
+        CSPM.PrettyPrinter,
+        CSPM.Prelude,
+        CSPM.Renamer,
+        CSPM.TypeChecker,
+        CSPM.TypeChecker.BuiltInFunctions,
+        CSPM.TypeChecker.Common,
+        CSPM.TypeChecker.Compressor,
+        CSPM.TypeChecker.Decl,
+        CSPM.TypeChecker.Environment,
+        CSPM.TypeChecker.Exceptions,
+        CSPM.TypeChecker.Expr,
+        CSPM.TypeChecker.File,
+        CSPM.TypeChecker.InteractiveStmt,
+        CSPM.TypeChecker.Monad,
+        CSPM.TypeChecker.Pat,
+        CSPM.TypeChecker.Unification,
+        Data.Graph.ST,
+        Data.Set.MutableBit,
+        Util.Annotated,
+        Util.Exception,
+        Util.FuzzyLookup,
+        Util.HierarchicalMap,
+        Util.List,
+        Util.Monad,
+        Util.MonadicPrettyPrint,
+        Util.MonadicPrettyPrintInternal,
+        Util.PartialFunctions,
+        Util.Prelude,
+        Util.PrettyPrint
+    
+    Other-Modules:
+        Paths_probe
+    
+    GHC-Options:
+        -O3
+        -Werror
+        -fwarn-missing-fields
+        -fwarn-dodgy-imports
+        -fwarn-missing-methods
+        -fwarn-unused-imports
+    GHC-Prof-Options: -auto-all -prof
+    
+    Hs-Source-Dirs: libcspm/src
+    
+    Extensions: DoAndIfThenElse
+
+Executable probe
+    Main-Is: Main.hs
+    Hs-Source-Dirs: src
+    GHC-Options: -O3
+
+    Build-Depends:
+        base >= 4 && < 5,
+        containers >= 0.4,
+        mtl >= 2.1,
+        probe

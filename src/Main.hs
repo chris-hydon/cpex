@@ -87,7 +87,7 @@ transitions (POp PExternalChoice ps) = transitionsMap fixTau ps
 -- process, with the hidden events replaced by tau.
 transitions (PUnaryOp (PHide evs) p) =
   map (\(ev, p) ->
-    (if elem ev (F.toList evs) then Tau else ev,
+    (if F.elem ev evs then Tau else ev,
     PUnaryOp (PHide evs) p)
   ) $ transitions p
 

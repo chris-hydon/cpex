@@ -68,8 +68,8 @@ transitions :: UProc -> [(Event, UProc)]
 transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
                   [(Event, UProc)]
 
-transitionsMap f ps =
-  F.concat $ S.mapWithIndex (\n p -> map (f n) (transitions p)) ps
+transitionsMap f =
+  F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
 
 --transitions (POp (PAlphaParallel evs) ps)
 

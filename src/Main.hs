@@ -12,6 +12,9 @@ import CSPM
 -- This generalises some of the haskell list functions to work over sequences.
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
+import qualified Data.Set as Set
+-- for mapMaybe, fromJust and isNothing
+import Data.Maybe
 -- for getArgs (command line arguments)
 import System.Environment
 -- for error handling on CSPM files
@@ -71,7 +74,36 @@ transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
 transitionsMap f =
   F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
 
---transitions (POp (PAlphaParallel evs) ps)
+-- The transitions for an alphabetized parallel process are the transitions
+-- resulting from the events offered by each process in parallel, minus those
+-- resulting from events on which we are synchronizing that at least one process
+-- syncing on that event does not offer.
+transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
+  -- All events involved in synchronization. Don't want duplication - use a set.
+  where sevs = F.foldr (\a evs -> F.foldr Set.insert evs a) Set.empty as
+  -- Transitions involving events not in the alphabet for any process.
+        frees = filter (((flip Set.notMember) sevs) . fst) $
+          transitionsMap alphaPar ps
+        alphaPar n (ev, pn) = (ev, POp (PAlphaParallel as) (S.update n pn ps))
+  -- Other events: allow only if all processes that synchronize on the event
+  -- offer it. Map each event to Just the resulting transition, or Nothing if
+  -- the event is blocked. To do this, we reduce from ps, updating each process
+  -- as it shows up, turning to Nothing on error.
+        syncs = mapMaybe (
+            \ev -> F.foldr (reduce ev) (Just (ev, POp (PAlphaParallel as) ps))
+              (S.zip3 (S.fromList [0..(S.length as)]) as ps)
+          ) (Set.toList sevs)
+  -- The reduce function checks that the given process/alphabet either ignores
+  -- or provides the event. In the former case, the event does not modify the
+  -- state of that process. In the latter, the event occurs within that process.
+  -- If neither is true, the event is blocked so return Nothing.
+        reduce _ _ Nothing = Nothing
+        reduce ev (n, evs, p) (Just (e, POp op qs)) -- ev == e
+          | F.notElem ev evs = Just (e, POp op qs)
+          | isNothing lookup = Nothing
+          | otherwise        = Just (e, POp op (S.update n (fromJust lookup) qs))
+          where lookup = foldr (\(e, pn) x -> if e == ev then Just pn else x)
+                  Nothing (transitions p)
 
 --transitions (PBinaryOp (PException evs) p1 p2)
 

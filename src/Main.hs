@@ -121,7 +121,26 @@ transitions (POp PExternalChoice ps) = transitionsMap fixTau ps
   where fixTau n (Tau, pn) = (Tau, POp PExternalChoice (S.update n pn ps))
         fixTau _ (ev, pn) = (ev, pn)
 
---transitions (POp (PGenParallel evs) ps)
+-- The transitions for a generalized parallel process are the free events
+-- performed by each process independently, plus the synchronized events that
+-- are offered by all processes.
+transitions (POp (PGenParallel evs) ps) = frees ++ syncs
+  -- Free events: anything not in evs.
+  where frees = filter (((flip F.notElem) evs) . fst) $ transitionsMap genPar ps
+        genPar n (ev, pn) = (ev, POp (PGenParallel evs) (S.update n pn ps))
+  -- The definition of syncs here is almost identical to that in alphabetized
+  -- parallel, except this time it's slightly simpler because we only have one
+  -- set of events to worry about.
+        syncs = mapMaybe (
+            \ev -> F.foldr (reduce ev) (Just (ev, POp (PGenParallel evs) ps))
+              (S.zip (S.fromList [0..(S.length ps)]) ps)
+          ) $ F.toList evs
+        reduce _ _ Nothing = Nothing
+        reduce ev (n, p) (Just (e, POp op qs)) -- ev == e
+          | isNothing lookup = Nothing
+          | otherwise = Just (e, POp op (S.update n (fromJust lookup) qs))
+          where lookup = foldr (\(e, pn) x -> if e == ev then Just pn else x)
+                  Nothing (transitions p)
 
 -- The transitions for a process with hidden events are the transitions of that
 -- process, with the hidden events replaced by tau.

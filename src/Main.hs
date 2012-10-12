@@ -13,6 +13,8 @@ import CSPM
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 import qualified Data.Set as Set
+-- for partition
+import Data.List
 -- for mapMaybe, fromJust and isNothing
 import Data.Maybe
 -- for getArgs (command line arguments)
@@ -166,7 +168,25 @@ transitions (PBinaryOp PInterrupt p1 p2) =
   (map (\(ev, pn) -> (ev, PBinaryOp PInterrupt pn p2)) (transitions p1)) ++
   transitions p2
 
---transitions (PBinaryOp (PLinkParallel evm) p1 p2)
+-- The transitions for a link parallel process are all free events plus those
+-- event pairs in the mapping where each side is offered by the respective
+-- process.
+transitions (PBinaryOp (PLinkParallel evm) p1 p2) = frees ++ syncs
+  -- Free events: For p_i, those not equal to e_i for some (e1, e2) in evm.
+  where (free1, sync1) = partition (isFree fst) $ transitions p1
+        (free2, sync2) = partition (isFree snd) $ transitions p2
+        isFree f (ev, _) = F.all ((/= ev) . f) evm
+        frees =
+          (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) pn p2)) free1) ++
+          (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) p1 pn)) free2)
+  -- Synced events: Any (e1, e2) in evm such that e1 is offered by p1 and e2 is
+  -- offered by p2. The event is then hidden.
+        syncs = mapMaybe (
+            \((e1, p1), (e2, p2)) ->
+              if F.elem (e1, e2) evm
+                then Just (Tau, PBinaryOp (PLinkParallel evm) p1 p2)
+                else Nothing
+          ) [(t1, t2) | t1 <- transitions p1, t2 <- transitions p2]
 
 --transitions (PUnaryOp (POperator ProcOperator) p)
 

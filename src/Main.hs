@@ -163,7 +163,13 @@ transitions (PUnaryOp (PRename evm) p) =
           | k == x    = v
           | otherwise = e
 
---transitions (PBinaryOp PSequentialComp p1 p2)
+-- The transitions of the sequential composition p1; p2 are the transitions of
+-- p1 with the resulting process sequentially composed with p2, for all events
+-- except Tick, which results in the process p2.
+transitions (PBinaryOp PSequentialComp p1 p2) = map nextProcess $ transitions p1
+  where nextProcess (ev, pn)
+          | ev == Tick = (ev, p2)
+          | otherwise  = (ev, PBinaryOp PSequentialComp pn p2)
 
 --transitions (PBinaryOp PSlidingChoice p1 p2)
 

@@ -171,7 +171,11 @@ transitions (PBinaryOp PSequentialComp p1 p2) = map nextProcess $ transitions p1
           | ev == Tick = (ev, p2)
           | otherwise  = (ev, PBinaryOp PSequentialComp pn p2)
 
---transitions (PBinaryOp PSlidingChoice p1 p2)
+-- The transitions of a sliding choice are the transitions of p1 (with the
+-- resulting processes themselves sliding into p2) plus a tau event which
+-- results in p2.
+transitions (PBinaryOp PSlidingChoice p1 p2) = (Tau, p2) :
+  (map (\(ev, pn) -> (ev, PBinaryOp PSlidingChoice pn p2)) $ transitions p1)
 
 -- The transitions for a process call are simply those of the inner process
 transitions (PProcCall pn p) = transitions p

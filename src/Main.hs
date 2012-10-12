@@ -194,7 +194,19 @@ transitions (PBinaryOp (PLinkParallel evm) p1 p2) = frees ++ syncs
                 else Nothing
           ) [(t1, t2) | t1 <- transitions p1, t2 <- transitions p2]
 
---transitions (PUnaryOp (POperator ProcOperator) p)
+-- Transitions of a chase-compressed process are those of the process, following
+-- tau transitions silently.
+transitions (PUnaryOp (POperator (Chase b)) p) = chase (transitions p)
+  where chase ts = if filter ((== Tau) . fst) ts == []
+                     then ts
+                     else transitions (POp PExternalChoice (chase' ts))
+        chase' [] = S.empty
+        chase' ((Tau, pn):ts) = (PUnaryOp (POperator (Chase b)) pn) S.<| (chase' ts)
+        chase' (_:ts) = chase' ts
+
+-- Other compressions are semantics-preserving, so the transitions are simply
+-- those of the process itself.
+transitions (PUnaryOp (POperator _) p) = transitions p
 
 -- The only transition here is to perform the event and move to p
 transitions (PUnaryOp (PPrefix ev) p) = [(ev, p)]

@@ -115,7 +115,13 @@ transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
           where lookup = foldr (\(e, pn) x -> if e == ev then Just pn else x)
                   Nothing (transitions p)
 
---transitions (PBinaryOp (PException evs) p1 p2)
+-- The transitions for a process with an exception handler are the events that
+-- that process may perform, with any event to be caught handing control to the
+-- handler process.
+transitions (PBinaryOp (PException evs) p1 p2) = map handle $ transitions p1
+  where handle (ev, pn)
+          | F.elem ev evs = (ev, p2)
+          | otherwise     = (ev, PBinaryOp (PException evs) pn p2)
 
 -- The transitions for external choice are to perform some event and move to the
 -- resulting process, and the processes resulting from each tau event.

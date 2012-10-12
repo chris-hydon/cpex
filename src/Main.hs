@@ -149,7 +149,14 @@ transitions (POp PInterleave ps) =
 -- The only transition here is to perform the event and move to p
 transitions (PUnaryOp (PPrefix ev) p) = [(ev, p)]
 
---transitions (PUnaryOp (PRename evm) p)
+-- The transitions of a renamed process are the transitions of the original
+-- process, with events mapped to the new process.
+transitions (PUnaryOp (PRename evm) p) =
+  map (\(ev, pn) -> (F.foldr (lookup ev) ev evm, PUnaryOp (PRename evm) pn)) $
+    transitions p
+  where lookup x (k, v) e
+          | k == x    = v
+          | otherwise = e
 
 --transitions (PBinaryOp PSequentialComp p1 p2)
 

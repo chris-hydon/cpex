@@ -140,7 +140,12 @@ transitions (POp PInternalChoice ps) = [(Tau, p) | p <- (F.toList ps)]
 transitions (POp PInterleave ps) =
   transitionsMap (\n (ev, pn) -> (ev, POp PInterleave (S.update n pn ps))) ps
 
---transitions (PBinaryOp PInterrupt p1 p2)
+-- The transitions for an interrupt are the events offered by p1 plus those
+-- offered by p2, with the processes resulting from an event in p1 replaced by
+-- an equivalent process interruptable by p2.
+transitions (PBinaryOp PInterrupt p1 p2) =
+  (map (\(ev, pn) -> (ev, PBinaryOp PInterrupt pn p2)) (transitions p1)) ++
+  transitions p2
 
 --transitions (PBinaryOp (PLinkParallel evm) p1 p2)
 

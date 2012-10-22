@@ -1,0 +1,11 @@
+#!/bin/sh
+
+for i in `ghc-pkg list | grep -o '^[^ ][^:]*'`; do
+  conffile=`ls -1 $i | grep "^$1"`
+  if [ "$conffile" ]; then
+    dir=`grep '^library-dirs' "$i/$conffile" | cut -d ' ' -f 2-`
+    for j in `ls -1 "$dir" | grep "libHS$2.*\.so"`; do
+      echo "$dir/$j"
+    done
+  fi
+done

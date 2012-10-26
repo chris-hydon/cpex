@@ -1,14 +1,2 @@
 *.swp
-.deps
-aclocal.m4
-autom4te.cache
-bin
-configure
-config.log
-config.status
-depcomp
-dist
-install-sh
-Makefile
-Makefile.in
-missing
+cpex.pro.user

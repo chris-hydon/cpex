@@ -1,6 +1,7 @@
 #include "cspmsession.h"
 
 #include "haskell/CSPM/Foreign_stub.h"
+#include "haskell/Cpex/Transitions_stub.h"
 
 CSPMSession * CSPMSession::session;
 
@@ -44,4 +45,11 @@ int CSPMSession::loadFile(QString fileName)
     cspm_file_free(file);
   }
   return cspm_session_load_file(hs_session, (void *) fileName.toStdWString().c_str(), &file);
+}
+
+Process * CSPMSession::compileExpression(QString expression)
+{
+  void * proc = NULL;
+  int r = cpex_expression_value(hs_session, (void *) expression.toStdWString().c_str(), &proc);
+  return (r ? new Process(proc) : NULL);
 }

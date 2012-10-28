@@ -6,7 +6,7 @@
 class ProcessModel : public QAbstractItemModel
 {
 public:
-  ProcessModel(QObject * parent = 0);
+  ProcessModel(QString rootExpression, QObject * parent = 0);
   QModelIndex index(int row, int column, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex & index) const;
   int rowCount(const QModelIndex & parent = QModelIndex()) const;

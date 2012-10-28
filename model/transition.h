@@ -4,6 +4,9 @@
 #include <QString>
 #include "model/process.h"
 
+// Forward-declare Process due to circular dependency.
+class Process;
+
 class Transition
 {
 public:

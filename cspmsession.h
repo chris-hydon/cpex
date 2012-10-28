@@ -1,6 +1,7 @@
 #ifndef CSPMSESSION_H
 #define CSPMSESSION_H
 
+#include "model/process.h"
 #include <QString>
 
 class CSPMSession
@@ -10,6 +11,7 @@ public:
   static void free();
 
   int loadFile(QString fileName);
+  Process * compileExpression(QString expression);
 
 private:
   static CSPMSession * session;

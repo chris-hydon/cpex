@@ -1,6 +1,6 @@
 #include "processmodel.h"
 
-ProcessModel::ProcessModel(QObject * parent) : QAbstractItemModel(parent)
+ProcessModel::ProcessModel(QString rootExpression, QObject * parent) : QAbstractItemModel(parent)
 {
 }
 

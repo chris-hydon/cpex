@@ -31,3 +31,5 @@ for(dep, HS_DEPS) {
 }
 
 QMAKE_EXTRA_COMPILERS += haskell_c
+LIBS += $${HS_LIBS}
+unix:QMAKE_RPATHDIR += $${HS_LIB_DIRS}

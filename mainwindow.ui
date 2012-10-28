@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow" >
-  <property name="geometry" >
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
@@ -9,16 +10,101 @@
     <height>300</height>
    </rect>
   </property>
-  <property name="windowTitle" >
-   <string>MainWindow</string>
+  <property name="windowTitle">
+   <string>CSP Process Explorer</string>
   </property>
-  <widget class="QMenuBar" name="menuBar" />
-  <widget class="QToolBar" name="mainToolBar" />
-  <widget class="QWidget" name="centralWidget" />
-  <widget class="QStatusBar" name="statusBar" />
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QLabel" name="qlbExpression">
+        <property name="text">
+         <string>Expression:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="qleExpression"/>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="0">
+     <widget class="ProcessTree" name="qtvExplorer"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="qmbMenu">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>400</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="qmmFile">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="qmaOpen"/>
+   </widget>
+   <addaction name="qmmFile"/>
+  </widget>
+  <widget class="QStatusBar" name="qsbStatus"/>
+  <action name="qmaOpen">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+  </action>
  </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ProcessTree</class>
+   <extends>QTreeView</extends>
+   <header>widget/processtree.h</header>
+   <slots>
+    <slot>loadInitialState()</slot>
+   </slots>
+  </customwidget>
+ </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>qleExpression</sender>
+   <signal>returnPressed()</signal>
+   <receiver>qtvExplorer</receiver>
+   <slot>loadInitialState()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>188</x>
+     <y>49</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>169</x>
+     <y>108</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qmaOpen</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>actionOpen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>actionOpen()</slot>
+ </slots>
 </ui>

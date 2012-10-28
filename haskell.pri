@@ -20,6 +20,10 @@ defineReplace(which_hs) {
   return($$system("$${HS_SRC}/which_hs $$1"))
 }
 
+HS_LIBS = $$which_hs("builtin_rts rts_thr-")
+HS_LIB_DIRS = $$dirname(HS_LIBS)
+INCLUDEPATH += "$${HS_LIB_DIRS}/include"
+
 for(dep, HS_DEPS) {
   lib = $$which_hs($$dep)
   HS_LIBS += $$lib

@@ -1,8 +1,7 @@
 HS_SRC = $${PWD}/haskell
 HS_DEST = haskell
 
-HS_DEPS += "builtin_rts rts_thr-" \
-           array \
+HS_DEPS += array \
            base \
            containers \
            deepseq \
@@ -23,12 +22,26 @@ TARGET = cpex
 TEMPLATE = app
 
 SOURCES += main.cpp\
-           mainwindow.cpp
+           mainwindow.cpp \
+    widget/processtree.cpp \
+    model/processmodel.cpp \
+    model/transition.cpp \
+    model/process.cpp \
+    cspmsession.cpp
 
-HEADERS += mainwindow.h
+HEADERS += mainwindow.h \
+    widget/processtree.h \
+    model/processmodel.h \
+    model/transition.h \
+    model/process.h \
+    cspmsession.h
 
 FORMS += mainwindow.ui
 
 LIBS += $${HS_LIBS}
 
 unix:QMAKE_RPATHDIR += $${HS_LIB_DIRS}
+
+OTHER_FILES += \
+    haskell/Cpex/Transitions.hs \
+    haskell/CSPM/Foreign.hs

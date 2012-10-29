@@ -3,7 +3,7 @@
 #include "haskell/CSPM/Foreign_stub.h"
 #include "haskell/Cpex/Transitions_stub.h"
 
-CSPMSession * CSPMSession::session;
+CSPMSession * CSPMSession::session = NULL;
 
 void CSPMSession::free()
 {
@@ -27,6 +27,7 @@ CSPMSession * CSPMSession::getSession()
 CSPMSession::CSPMSession()
 {
   hs_session = cspm_session_create();
+  file = NULL;
 }
 
 CSPMSession::~CSPMSession()

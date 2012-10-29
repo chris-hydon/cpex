@@ -18,7 +18,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::actionOpen()
 {
-  QString file = QFileDialog::getOpenFileName(this, tr("Select file to open"), QDir::homePath(), tr("CSP definition files (*.csp);;All files (*.*)"), 0, QFileDialog::DontUseNativeDialog);
+  QString file = QFileDialog::getOpenFileName(this, tr("Select file to open"),
+    QDir::homePath(), tr("CSP definition files (*.csp);;All files (*.*)"));
   if (file != NULL)
   {
     int r = CSPMSession::getSession()->loadFile(file);

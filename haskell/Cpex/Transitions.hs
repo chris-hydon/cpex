@@ -6,6 +6,7 @@ module Cpex.Transitions (
 import Control.Monad.Trans
 import CSPM
 import CSPM.Foreign
+import CSPM.Prelude
 import Data.IORef
 import Data.List
 import Data.Maybe
@@ -20,6 +21,7 @@ import Util.PrettyPrint
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 import qualified Data.Set as Set
+import qualified Data.Map as M
 
 type ProcPtr = StablePtr (IORef UProc)
 type TransitionPtr = StablePtr (IORef (Event, UProc))
@@ -37,7 +39,7 @@ cpex_transitions :: ProcPtr -> Ptr (Ptr TransitionPtr) -> Ptr CUInt -> IO ()
 cpex_transitions inProc outArray outCount = do
   pRef <- deRefStablePtr inProc
   p <- readIORef pRef
-  ts <- mapM newIORef $ transitions p
+  ts <- mapM (newIORef . simplify) $ transitions p
   tptrs <- mapM newStablePtr $ ts
   arrayPtr <- newArray tptrs
   liftIO $ poke outArray arrayPtr
@@ -62,6 +64,16 @@ cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   procPtr <- liftIO $ newStablePtr procRef
   liftIO $ poke outProc procPtr
 
+-- Builtin process STOP.
+builtInName s = name . head . filter ((== s) . stringName) $ builtins False
+csp_stop_id = procName (scopeId (builtInName "STOP") [] Nothing)
+csp_stop = PProcCall csp_stop_id (POp PExternalChoice S.empty)
+
+-- Given a transition, replaces the process with STOP if the event is Tick.
+simplify :: (Event, UProc) -> (Event, UProc)
+simplify (Tick, _) = (Tick, csp_stop)
+simplify x = x
+
 -- | Given a process, returns a list of transitions that the process has,
 -- represented as a pair of (event, resulting process)
 transitions :: UProc -> [(Event, UProc)]
@@ -72,16 +84,7 @@ transitions :: UProc -> [(Event, UProc)]
 -- pairs.
 transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
                   [(Event, UProc)]
--- As transitionsMap, but also takes a second function to filter the results.
--- This function also has access to the process index.
-transitionsMapFilter :: (Int -> (Event, UProc) -> (Event, UProc)) ->
-                        (Int -> (Event, UProc) -> Bool) -> S.Seq UProc ->
-                        [(Event, UProc)]
-
-transitionsMap f =
-  transitionsMapFilter f (\_ _ -> True)
-transitionsMapFilter f g =
-  F.concat . (S.mapWithIndex (\n p -> filter (g n) (map (f n) (transitions p))))
+transitionsMap f = F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
 
 -- Given a parallelized process, a list of alphabets and an event, returns
 -- Maybe the (Event, p) pair where p is the result of applying the event to the
@@ -110,11 +113,9 @@ synchronize (POp op ps) as ev = F.foldr (reduce ev) (Just (ev, POp op ps))
 transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
   -- All events involved in synchronization. Don't want duplication - use a set.
   where sevs = F.foldr (\a evs -> F.foldr Set.insert evs a) Set.empty as'
-  -- Transitions involving events not in the alphabet for any process.
-        frees = transitionsMapFilter alphaPar freeFilter ps
+  -- Only Tau events are free, those not appearing in the alphabet are blocked.
+        frees = filter ((== Tau) . fst) $ transitionsMap alphaPar ps
         alphaPar n (ev, pn) = (ev, POp (PAlphaParallel as) (S.update n pn ps))
-        freeFilter n (ev, _) =
-          (Set.notMember ev sevs) || (F.notElem ev (S.index as' n))
   -- Other events: allow only if all processes that synchronize on the event
   -- offer it. Map each event to Just the resulting transition, or Nothing if
   -- the event is blocked.
@@ -166,7 +167,7 @@ transitions (POp PInternalChoice ps) = [(Tau, p) | p <- (F.toList ps)]
 -- the events offered by each process in parallel. Special handling needed for
 -- Tick.
 transitions (POp PInterleave ps) = maybeTick $
-  transitionsMapFilter interleave (curry ((/= Tick) . fst . snd)) ps
+  filter ((/= Tick) . fst) $ transitionsMap interleave ps
   where interleave n (ev, pn) = (ev, POp PInterleave (S.update n pn ps))
         maybeTick ts
           | tickProcs == Nothing = ts
@@ -179,7 +180,9 @@ transitions (POp PInterleave ps) = maybeTick $
 -- an equivalent process interruptable by p2.
 transitions (PBinaryOp PInterrupt p1 p2) =
   (map (\(ev, pn) -> (ev, PBinaryOp PInterrupt pn p2)) (transitions p1)) ++
-  transitions p2
+  (map tauOrInterrupt (transitions p2))
+  where tauOrInterrupt (Tau, pn) = (Tau, PBinaryOp PInterrupt p1 pn)
+        tauOrInterrupt x = x
 
 -- The transitions for a link parallel process are all free events plus those
 -- event pairs in the mapping where each side is offered by the respective
@@ -237,11 +240,12 @@ transitions (PBinaryOp PSequentialComp p1 p2) = map nextProcess $ transitions p1
           | ev == Tick = (Tau, p2)
           | otherwise  = (ev, PBinaryOp PSequentialComp pn p2)
 
--- The transitions of a sliding choice are the transitions of p1 (with the
--- resulting processes themselves sliding into p2) plus a tau event which
--- results in p2.
+-- The transitions of a sliding choice are the transitions of p1 plus a tau
+-- event which results in p2.
 transitions (PBinaryOp PSlidingChoice p1 p2) = (Tau, p2) :
-  (map (\(ev, pn) -> (ev, PBinaryOp PSlidingChoice pn p2)) $ transitions p1)
+  (map slideVisible $ transitions p1)
+  where slideVisible (Tau, pn) = (Tau, PBinaryOp PSlidingChoice pn p2)
+        slideVisible x = x
 
 -- The transitions for a process call are simply those of the inner process
 transitions (PProcCall pn p) = transitions p

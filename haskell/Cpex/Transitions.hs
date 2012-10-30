@@ -24,17 +24,53 @@ import qualified Data.Set as Set
 import qualified Data.Map as M
 
 type ProcPtr = StablePtr (IORef UProc)
+type EventPtr = StablePtr (IORef Event)
 type TransitionPtr = StablePtr (IORef (Event, UProc))
 
+-- Foreign exports: Each Ptr argument (not StablePtr) is intended for output.
 foreign export ccall
   cpex_transitions :: ProcPtr -> Ptr (Ptr TransitionPtr) -> Ptr CUInt -> IO ()
 foreign export ccall
-  cpex_event_data :: TransitionPtr -> Ptr CWString -> Ptr CUChar -> IO ()
+  cpex_event_data :: TransitionPtr -> Ptr EventPtr -> IO ()
+foreign export ccall
+  cpex_process_data :: TransitionPtr -> Ptr ProcPtr -> IO ()
+foreign export ccall
+  cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
+foreign export ccall
+  cpex_process_string :: ProcPtr -> Ptr CWString -> IO ()
+foreign export ccall
+  cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
+foreign export ccall
+  cpex_op_event :: ProcPtr -> Ptr EventPtr -> IO CUInt
+foreign export ccall
+  cpex_op_events :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
+foreign export ccall
+  cpex_op_event_map :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr EventPtr) ->
+    Ptr CUInt -> IO CUInt
+foreign export ccall
+  cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) ->
+    Ptr (Ptr CUInt) -> IO CUInt
+foreign export ccall
+  cpex_op_process :: ProcPtr -> Ptr ProcPtr -> IO CUInt
+foreign export ccall
+  cpex_op_process2 :: ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
+foreign export ccall
+  cpex_op_processes :: ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
+foreign export ccall
+  cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
+
 foreign export ccall
   cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 
+foreign export ccall
+  cpex_transition_free :: TransitionPtr -> IO ()
+foreign export ccall
+  cpex_event_free :: EventPtr -> IO ()
+foreign export ccall
+  cpex_process_free :: ProcPtr -> IO ()
+
 -- Input: Stable pointer to a process.
--- Output: Pointer to an array of pointers to transitions.
+-- Output: Array of transitions resulting from that process.
 cpex_transitions :: ProcPtr -> Ptr (Ptr TransitionPtr) -> Ptr CUInt -> IO ()
 cpex_transitions inProc outArray outCount = do
   pRef <- deRefStablePtr inProc
@@ -45,10 +81,33 @@ cpex_transitions inProc outArray outCount = do
   liftIO $ poke outArray arrayPtr
   liftIO $ poke outCount $ fromIntegral $ length ts
 
-cpex_event_data :: TransitionPtr -> Ptr CWString -> Ptr CUChar -> IO ()
-cpex_event_data inTrans outName outType = do
+-- Input: Transition.
+-- Output: The event for that transition.
+cpex_event_data :: TransitionPtr -> Ptr EventPtr -> IO ()
+cpex_event_data inTrans outEvent = do
   tRef <- deRefStablePtr inTrans
   (e, _) <- readIORef tRef
+  eRef <- liftIO $ newIORef e
+  ePtr <- newStablePtr eRef
+  poke outEvent ePtr
+
+-- Input: Transition.
+-- Output: The resulting process.
+cpex_process_data :: TransitionPtr -> Ptr ProcPtr -> IO ()
+cpex_process_data inTrans outProc = do
+  tRef <- deRefStablePtr inTrans
+  (_, p) <- readIORef tRef
+  procRef <- liftIO $ newIORef p
+  procPtr <- liftIO $ newStablePtr procRef
+  liftIO $ poke outProc procPtr
+
+-- Input: Event.
+-- Output: A string representation of that event, suitable for output.
+--         The type of the event (user defined, Tau or Tick).
+cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
+cpex_event_string inEvent outName outType = do
+  eRef <- deRefStablePtr inEvent
+  e <- readIORef eRef
   name <- (newCWString . show . prettyPrint) e
   poke outType $ fromIntegral $ etype e
   poke outName name
@@ -56,6 +115,206 @@ cpex_event_data inTrans outName outType = do
         etype Tick = 2
         etype _ = 0
 
+-- Input: Process.
+-- Output: A string representation of that process, suitable for output.
+cpex_process_string :: ProcPtr -> Ptr CWString -> IO ()
+cpex_process_string inProc outString = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  name <- (newCWString . show . prettyPrint) p
+  poke outString name
+
+-- Input: Process.
+-- Output: A number representing the operator used.
+cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
+cpex_process_operator inProc outOp = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  poke outOp $ fromIntegral $ operatorNum p
+
+-- Input: Process.
+-- Output: The single event parameter for the process. Only valid for Prefix
+--         processes (a -> P).
+-- Error: If the process is of the wrong type.
+cpex_op_event :: ProcPtr -> Ptr EventPtr -> IO CUInt
+cpex_op_event inProc outEvent = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let e = get_event p
+  case e of
+    Just ev -> liftIO $ do
+      eRef <- newIORef ev
+      ePtr <- newStablePtr eRef
+      poke outEvent ePtr
+      return 1
+    Nothing -> return 0
+  where get_event (PUnaryOp (PPrefix ev) _) = Just ev
+        get_event _ = Nothing
+
+-- Input: Process.
+-- Output: The set of events parameter for the process, and the number of events
+--         in the set. Only valid for Exception (P [|A|> Q), Generalized
+--         Parallel (P [|A|] Q) and Hide (P \ A).
+-- Error: If the process is of the wrong type.
+cpex_op_events :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
+cpex_op_events inProc outEvents outSize = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let es = get_events p
+  case es of
+    Just es -> liftIO $ do
+      eRefs <- mapM newIORef $ F.toList es
+      ePtrs <- mapM newStablePtr eRefs
+      arrayPtr <- newArray ePtrs
+      poke outEvents arrayPtr
+      poke outSize $ fromIntegral $ S.length es
+      return 1
+    Nothing -> return 0
+  where get_events (PBinaryOp (PException evs) _ _) = Just evs
+        get_events (POp (PGenParallel evs) _) = Just evs
+        get_events (PUnaryOp (PHide evs) _) = Just evs
+        get_events _ = Nothing
+
+-- Input: Process.
+-- Output: Two lists of events, representing pairs (e1, e2) of events in the
+--         event map, and the number of such pairs. Only valid for Linked
+--         Parallel (P [A <- B] Q) and Rename (P [[A <- B]]).
+-- Error: If the process is of the wrong type.
+cpex_op_event_map :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr EventPtr) ->
+  Ptr CUInt -> IO CUInt
+cpex_op_event_map inProc outLeft outRight outSize = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let em = get_event_map p
+  case em of
+    Just em -> liftIO $ do
+      let eml = F.toList em
+      eLeftRefs <- mapM (newIORef . fst) $ eml
+      eRightRefs <- mapM (newIORef . snd) $ eml
+      eLeftPtrs <- mapM newStablePtr eLeftRefs
+      eRightPtrs <- mapM newStablePtr eRightRefs
+      leftPtr <- newArray eLeftPtrs
+      rightPtr <- newArray eRightPtrs
+      poke outLeft leftPtr
+      poke outRight rightPtr
+      poke outSize $ fromIntegral $ S.length em
+      return 1
+    Nothing -> return 0
+  where get_event_map (PBinaryOp (PLinkParallel evm) _ _) = Just evm
+        get_event_map (PUnaryOp (PRename evm) _) = Just evm
+        get_event_map _ = Nothing
+
+-- Input: Process.
+-- Output: A list of lists of events, and a list of sizes for each such list.
+--         Only valid for Alphabetized Parallel (P [A||B] Q). The size of each
+--         list is equivalent to the number of events in the corresponding
+--         process, and the number of lists equal to the number of processes.
+-- Error: If the process is of the wrong type.
+cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) -> Ptr (Ptr CUInt) ->
+  IO CUInt
+cpex_op_alphabets inProc outAlphas outSizes = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let as = get_alphas p
+  case as of
+    Just as -> liftIO $ do
+      aRefs <- mapM ((mapM newIORef) . F.toList) $ F.toList as
+      aPtrs <- mapM (mapM newStablePtr) aRefs
+      arrayPtrs <- mapM newArray aPtrs
+      arrayPtr <- newArray arrayPtrs
+      poke outAlphas arrayPtr
+      sizesPtr <- newArray $ (map (fromIntegral . S.length) . F.toList) as
+      poke outSizes sizesPtr
+      return 1
+    Nothing -> return 0
+  where get_alphas (POp (PAlphaParallel as) _) = Just as
+        get_alphas _ = Nothing
+
+-- Input: PUnaryOp process.
+-- Output: The process contained within the operator.
+-- Error: If the process is not PUnaryOp.
+cpex_op_process :: ProcPtr -> Ptr ProcPtr -> IO CUInt
+cpex_op_process inProc outProc = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let pn = next p
+  case pn of
+    Just pn -> liftIO $ do
+      pRef <- newIORef pn
+      pPtr <- newStablePtr pRef
+      poke outProc pPtr
+      return 1
+    Nothing -> return 0
+  where next (PUnaryOp _ pn) = Just pn
+        next _ = Nothing
+
+-- Input: PBinaryOp process.
+-- Output: The two processes contained within the operator.
+-- Error: If the process is not PBinaryOp.
+cpex_op_process2 :: ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
+cpex_op_process2 inProc outLeft outRight = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let pn = next p
+  case pn of
+    Just (p1, p2) -> liftIO $ do
+      p1Ref <- newIORef p1
+      p1Ptr <- newStablePtr p1Ref
+      p2Ref <- newIORef p2
+      p2Ptr <- newStablePtr p2Ref
+      poke outLeft p1Ptr
+      poke outRight p2Ptr
+      return 1
+    Nothing -> return 0
+  where next (PBinaryOp _ p1 p2) = Just (p1, p2)
+        next _ = Nothing
+
+-- Input: POp process.
+-- Output: List of processes contained within the operator.
+--         Size of the list.
+-- Error: If the process is not POp.
+cpex_op_processes :: ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
+cpex_op_processes inProc outProcs outSize = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let pn = next p
+  case pn of
+    Just pn -> liftIO $ do
+      pRef <- mapM newIORef (F.toList pn)
+      pPtr <- mapM newStablePtr pRef
+      arrayPtr <- newArray pPtr
+      poke outProcs arrayPtr
+      poke outSize $ fromIntegral $ S.length pn
+      return 1
+    Nothing -> return 0
+  where next (POp _ pn) = Just pn
+        next _ = Nothing
+
+-- Input: PProcCall process.
+-- Output: The expansion of the process.
+--         The string representation of the process.
+-- Error: If the process is not PProcCall.
+cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
+cpex_op_proccall inProc outProc outName = do
+  pRef <- deRefStablePtr inProc
+  p <- readIORef pRef
+  let pn = next p
+  case pn of
+    Just (n, pn) -> liftIO $ do
+      pRef <- newIORef pn
+      pPtr <- newStablePtr pRef
+      poke outProc pPtr
+      name <- (newCWString . show . prettyPrint) n
+      poke outName name
+      return 1
+    Nothing -> return 0
+  where next (PProcCall n pn) = Just (n, pn)
+        next _ = Nothing
+
+-- Input: CSPM session.
+--        CSPM expression string.
+-- Output: The process represented by that expression.
+-- Error: If the given expression does not resolve to a process.
 cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
@@ -63,6 +322,14 @@ cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   procRef <- liftIO $ newIORef expressionValue
   procPtr <- liftIO $ newStablePtr procRef
   liftIO $ poke outProc procPtr
+
+-- Memory freeing functions.
+cpex_transition_free :: TransitionPtr -> IO ()
+cpex_transition_free = freeStablePtr
+cpex_event_free :: EventPtr -> IO ()
+cpex_event_free = freeStablePtr
+cpex_process_free :: ProcPtr -> IO ()
+cpex_process_free = freeStablePtr
 
 -- Builtin process STOP.
 builtInName s = name . head . filter ((== s) . stringName) $ builtins False
@@ -249,3 +516,22 @@ transitions (PBinaryOp PSlidingChoice p1 p2) = (Tau, p2) :
 
 -- The transitions for a process call are simply those of the inner process
 transitions (PProcCall pn p) = transitions p
+
+
+-- Given a process, returns a numeric value representing the operator.
+operatorNum :: UProc -> Int
+operatorNum (POp (PAlphaParallel _) _) = 0
+operatorNum (PBinaryOp (PException _) _ _) = 1
+operatorNum (POp PExternalChoice _) = 2
+operatorNum (POp (PGenParallel _) _) = 3
+operatorNum (PUnaryOp (PHide _) _) = 4
+operatorNum (POp PInternalChoice _) = 5
+operatorNum (POp PInterleave _) = 7
+operatorNum (PBinaryOp PInterrupt _ _) = 6
+operatorNum (PBinaryOp (PLinkParallel _) _ _) = 8
+operatorNum (PUnaryOp (POperator _) _) = 9
+operatorNum (PUnaryOp (PPrefix _) _) = 10
+operatorNum (PUnaryOp (PRename _) _) = 11
+operatorNum (PBinaryOp PSequentialComp _ _) = 12
+operatorNum (PBinaryOp PSlidingChoice _ _) = 13
+operatorNum (PProcCall _ _) = 14

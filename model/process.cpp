@@ -25,21 +25,23 @@ QLinkedList<Transition> * Process::transitions()
     _loadedTransitions = new QLinkedList<Transition>();
     for (quint32 i = 0; i < transitionCount; i++)
     {
-      wchar_t* name = NULL;
+      void * event = NULL;
+      wchar_t * name = NULL;
       quint32 type = 0;
-      cpex_event_data(_hsTransitions[i], &name, &type);
+      cpex_event_data(_hsTransitions[i], &event);
+      cpex_event_string(event, &name, &type);
 
-      QString event;
+      QString eventStr;
       switch (type)
       {
         case 0:
-          event = QString::fromWCharArray(name);
+          eventStr = QString::fromWCharArray(name);
         case 1:
-          event = "τ";
+          eventStr = "τ";
         case 2:
-          event = "✓";
+          eventStr = "✓";
       }
-      *_loadedTransitions << Transition(event, this);
+      *_loadedTransitions << Transition(eventStr, this);
     }
   }
 

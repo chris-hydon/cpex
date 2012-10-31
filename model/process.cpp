@@ -1,55 +1,85 @@
 #include "process.h"
 
 #include "haskell/Cpex/Transitions_stub.h"
+#include <HsFFI.h>
+#include <QRegExp>
 
-Process::Process(void * hsPtr)
+Process::Process(void * hsPtr, const Process * parent, const Event * cause,
+  int index) : _hsPtr(hsPtr), _parent(parent), _cause(cause), _index(index)
 {
-  _hsPtr = hsPtr;
+  _next = NULL;
 }
 
 Process::~Process()
 {
-  delete _loadedTransitions;
-  // TODO: Investigate whether we need to do anything about _hsTransitions
+  QPair<Event *, Process *> * deleting;
+  if (_next != NULL)
+  {
+    while (!_next->isEmpty())
+    {
+      deleting = _next->takeFirst();
+      delete deleting->first;
+      delete deleting->second;
+      delete deleting;
+    }
+    delete _next;
+  }
+  hs_free_stable_ptr(_hsPtr);
 }
 
-QLinkedList<Transition> * Process::transitions()
+QList<QPair<Event *, Process *> *> * Process::transitions() const
 {
-  if (_loadedTransitions == NULL)
+  if (_next == NULL)
   {
-    _hsTransitions = NULL;
+    void ** hsProcs = NULL;
+    void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    // TODO: Error handling.
-    cpex_transitions(_hsPtr, &_hsTransitions, &transitionCount);
+    cpex_transitions(_hsPtr, &hsEvents, &hsProcs, &transitionCount);
 
-    _loadedTransitions = new QLinkedList<Transition>();
+    _next = new QList<QPair<Event *, Process *> *>();
     for (quint32 i = 0; i < transitionCount; i++)
     {
-      void * event = NULL;
-      wchar_t * name = NULL;
-      quint32 type = 0;
-      cpex_event_data(_hsTransitions[i], &event);
-      cpex_event_string(event, &name, &type);
-
-      QString eventStr;
-      switch (type)
-      {
-        case 0:
-          eventStr = QString::fromWCharArray(name);
-        case 1:
-          eventStr = "τ";
-        case 2:
-          eventStr = "✓";
-      }
-      *_loadedTransitions << Transition(eventStr, this);
+      Event * e = new Event(hsEvents[i]);
+      Process * p = new Process(hsProcs[i], this, e, i);
+      _next->append(new QPair<Event *, Process *>(e, p));
     }
+
+    // TODO: Make sure this doesn't cause problems.
+    free(hsProcs);
+    free(hsEvents);
   }
 
-  return _loadedTransitions;
+  return _next;
 }
 
 QString Process::displayText() const
 {
-  // TODO
-  return "[placeholder]";
+  if (_displayText == NULL)
+  {
+    wchar_t * str = NULL;
+    cpex_process_string(_hsPtr, &str);
+    _displayText = QString::fromWCharArray(str).replace(QRegExp("\\s+"), " ");
+    free(str);
+  }
+  return _displayText;
+}
+
+const Process * Process::parent() const
+{
+  return _parent;
+}
+
+const Event * Process::causedBy() const
+{
+  return _cause;
+}
+
+int Process::parentTransitionIndex() const
+{
+  return _index;
+}
+
+bool Process::operator ==(const Process & other) const
+{
+  return displayText() == other.displayText();
 }

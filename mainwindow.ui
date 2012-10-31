@@ -30,7 +30,11 @@
      </layout>
     </item>
     <item row="1" column="0">
-     <widget class="ProcessTree" name="qtvExplorer"/>
+     <widget class="ProcessTree" name="qtvExplorer">
+      <property name="headerHidden">
+       <bool>true</bool>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

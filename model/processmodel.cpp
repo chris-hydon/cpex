@@ -1,54 +1,81 @@
+#include "cspmsession.h"
 #include "processmodel.h"
 
-ProcessModel::ProcessModel(QString rootExpression, QObject * parent) : QAbstractItemModel(parent)
+ProcessModel::ProcessModel(const QString & rootExpression, QObject * parent) :
+  QAbstractItemModel(parent)
 {
+  _rootProcess = CSPMSession::getSession()->compileExpression(rootExpression);
+}
+
+ProcessModel::~ProcessModel()
+{
+  delete _rootProcess;
 }
 
 QModelIndex ProcessModel::index(int row, int column, const QModelIndex & parent) const
 {
-  return parent;
+  if (!hasIndex(row, column, parent))
+  {
+    return QModelIndex();
+  }
+
+  const Process * parentItem;
+  if (!parent.isValid())
+  {
+    parentItem = _rootProcess;
+  }
+  else
+  {
+    parentItem = static_cast<const Process *>(parent.internalPointer());
+  }
+
+  return createIndex(row, column, parentItem->transitions()->at(row)->second);
 }
 
 QModelIndex ProcessModel::parent(const QModelIndex & index) const
 {
-  return index;
+  if (!index.isValid())
+  {
+    return QModelIndex();
+  }
+
+  const Process * childItem = static_cast<const Process *>(index.internalPointer());
+  const Process * parentItem = childItem->parent();
+
+  if (parentItem == _rootProcess)
+  {
+    return QModelIndex();
+  }
+
+  return createIndex(parentItem->parentTransitionIndex(), 0, (void *) parentItem);
 }
 
 int ProcessModel::rowCount(const QModelIndex & parent) const
 {
-  // TODO
-  return 0;
+  const Process * parentItem;
+  if (!parent.isValid())
+  {
+    parentItem = _rootProcess;
+  }
+  else
+  {
+    parentItem = static_cast<const Process *>(parent.internalPointer());
+  }
+  return parentItem->transitions()->count();
 }
 
-int ProcessModel::columnCount(const QModelIndex & parent) const
+int ProcessModel::columnCount(const QModelIndex &) const
 {
   return 1;
 }
 
 QVariant ProcessModel::data(const QModelIndex & index, int role) const
 {
-  return "";
-}
-
-// Infinite data structure: must lazily load data as the view requires it.
-bool ProcessModel::hasChildren(const QModelIndex & parent) const
-{
-  return rowCount(parent) > 0 || canFetchMore(parent);
-}
-
-bool ProcessModel::canFetchMore(const QModelIndex & parent) const
-{
-  bool fetched = true;
-  if (fetched)
+  if (role != Qt::DisplayRole || !index.isValid())
   {
-    return false;
+    return QVariant();
   }
 
-  // TODO
-  fetched = true;
-  return true;
-}
-
-void ProcessModel::fetchMore(const QModelIndex & parent)
-{
+  const Process * proc = static_cast<const Process *>(index.internalPointer());
+  return QString("%1: %2").arg(proc->causedBy()->displayText(), proc->displayText());
 }

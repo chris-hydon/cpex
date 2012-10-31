@@ -28,17 +28,17 @@ SOURCES += \
     mainwindow.cpp \
     widget/processtree.cpp \
     model/processmodel.cpp \
-    model/transition.cpp \
     model/process.cpp \
-    cspmsession.cpp
+    cspmsession.cpp \
+    model/event.cpp
 
 HEADERS += \
     mainwindow.h \
     widget/processtree.h \
     model/processmodel.h \
-    model/transition.h \
     model/process.h \
-    cspmsession.h
+    cspmsession.h \
+    model/event.h
 
 FORMS += \
     mainwindow.ui

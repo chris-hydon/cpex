@@ -1,24 +1,32 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include "transition.h"
-#include <QLinkedList>
+#include "event.h"
 
-// Forward-declare Transition due to circular dependency.
-class Transition;
+#include <QList>
+#include <QPair>
+#include <QString>
 
 class Process
 {
 public:
-  Process(void * hsPtr);
+  Process(void * hsPtr, const Process * parent = NULL, const Event * cause = NULL,
+    int index = 0);
   ~Process();
-  QLinkedList<Transition> * transitions();
+  QList<QPair<Event *, Process *> *> * transitions() const;
   QString displayText() const;
+  const Process * parent() const;
+  const Event * causedBy() const;
+  int parentTransitionIndex() const;
+  bool operator ==(const Process & other) const;
 
 private:
   void * _hsPtr;
-  QLinkedList<Transition> * _loadedTransitions;
-  void ** _hsTransitions;
+  const Process * _parent;
+  const Event * _cause;
+  int _index;
+  mutable QList<QPair<Event *, Process *> *> * _next;
+  mutable QString _displayText;
 };
 
 #endif // PROCESS_H

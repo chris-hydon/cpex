@@ -1,22 +1,22 @@
 #ifndef PROCESSMODEL_H
 #define PROCESSMODEL_H
 
+#include "process.h"
 #include <QAbstractItemModel>
 
 class ProcessModel : public QAbstractItemModel
 {
 public:
-  ProcessModel(QString rootExpression, QObject * parent = 0);
+  ProcessModel(const QString & rootExpression, QObject * parent = 0);
+  ~ProcessModel();
   QModelIndex index(int row, int column, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex & index) const;
   int rowCount(const QModelIndex & parent = QModelIndex()) const;
   int columnCount(const QModelIndex & parent = QModelIndex()) const;
   QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
 
-  // Infinite data structure: must lazily load data as the view requires it.
-  bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
-  bool canFetchMore(const QModelIndex & parent) const;
-  void fetchMore(const QModelIndex & parent);
+private:
+  const Process * _rootProcess;
 };
 
 #endif // PROCESSMODEL_H

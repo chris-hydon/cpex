@@ -25,15 +25,11 @@ import qualified Data.Map as M
 
 type ProcPtr = StablePtr (IORef UProc)
 type EventPtr = StablePtr (IORef Event)
-type TransitionPtr = StablePtr (IORef (Event, UProc))
 
 -- Foreign exports: Each Ptr argument (not StablePtr) is intended for output.
 foreign export ccall
-  cpex_transitions :: ProcPtr -> Ptr (Ptr TransitionPtr) -> Ptr CUInt -> IO ()
-foreign export ccall
-  cpex_event_data :: TransitionPtr -> Ptr EventPtr -> IO ()
-foreign export ccall
-  cpex_process_data :: TransitionPtr -> Ptr ProcPtr -> IO ()
+  cpex_transitions :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr ProcPtr) ->
+    Ptr CUInt -> IO ()
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 foreign export ccall
@@ -63,43 +59,29 @@ foreign export ccall
   cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 
 foreign export ccall
-  cpex_transition_free :: TransitionPtr -> IO ()
-foreign export ccall
   cpex_event_free :: EventPtr -> IO ()
 foreign export ccall
   cpex_process_free :: ProcPtr -> IO ()
 
 -- Input: Stable pointer to a process.
--- Output: Array of transitions resulting from that process.
-cpex_transitions :: ProcPtr -> Ptr (Ptr TransitionPtr) -> Ptr CUInt -> IO ()
-cpex_transitions inProc outArray outCount = do
+-- Output: Array of events offered by the process (may include duplicates).
+--         Array of processes resulting from applying the respective event.
+--         Size of array.
+cpex_transitions :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr ProcPtr) ->
+  Ptr CUInt -> IO ()
+cpex_transitions inProc outEvents outProcs outCount = do
   pRef <- deRefStablePtr inProc
   p <- readIORef pRef
-  ts <- mapM (newIORef . simplify) $ transitions p
-  tptrs <- mapM newStablePtr $ ts
-  arrayPtr <- newArray tptrs
-  liftIO $ poke outArray arrayPtr
-  liftIO $ poke outCount $ fromIntegral $ length ts
-
--- Input: Transition.
--- Output: The event for that transition.
-cpex_event_data :: TransitionPtr -> Ptr EventPtr -> IO ()
-cpex_event_data inTrans outEvent = do
-  tRef <- deRefStablePtr inTrans
-  (e, _) <- readIORef tRef
-  eRef <- liftIO $ newIORef e
-  ePtr <- newStablePtr eRef
-  poke outEvent ePtr
-
--- Input: Transition.
--- Output: The resulting process.
-cpex_process_data :: TransitionPtr -> Ptr ProcPtr -> IO ()
-cpex_process_data inTrans outProc = do
-  tRef <- deRefStablePtr inTrans
-  (_, p) <- readIORef tRef
-  procRef <- liftIO $ newIORef p
-  procPtr <- liftIO $ newStablePtr procRef
-  liftIO $ poke outProc procPtr
+  let (es, pns) = unzip $ map simplify $ transitions p
+  eRefs <- mapM newIORef es
+  pnRefs <- mapM newIORef pns
+  ePtrs <- mapM newStablePtr eRefs
+  pnPtrs <- mapM newStablePtr pnRefs
+  eArray <- newArray ePtrs
+  pnArray <- newArray pnPtrs
+  poke outEvents eArray
+  poke outProcs pnArray
+  liftIO $ poke outCount $ fromIntegral $ length es
 
 -- Input: Event.
 -- Output: A string representation of that event, suitable for output.
@@ -324,8 +306,6 @@ cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   liftIO $ poke outProc procPtr
 
 -- Memory freeing functions.
-cpex_transition_free :: TransitionPtr -> IO ()
-cpex_transition_free = freeStablePtr
 cpex_event_free :: EventPtr -> IO ()
 cpex_event_free = freeStablePtr
 cpex_process_free :: ProcPtr -> IO ()

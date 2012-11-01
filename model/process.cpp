@@ -45,7 +45,6 @@ QList<QPair<Event *, Process *> *> * Process::transitions() const
       _next->append(new QPair<Event *, Process *>(e, p));
     }
 
-    // TODO: Make sure this doesn't cause problems.
     free(hsProcs);
     free(hsEvents);
   }

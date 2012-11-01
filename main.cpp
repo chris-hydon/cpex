@@ -18,10 +18,11 @@ int main(int argc, char *argv[])
   hs_init_ghc(&argc, &argv, conf);
 
   QApplication a(argc, argv);
-  MainWindow w;
-  w.show();
+  MainWindow * w = new MainWindow();
+  w->show();
 
   int ret = a.exec();
+  delete w;
 
   CSPMSession::getSession()->free();
   hs_exit();

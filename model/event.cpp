@@ -29,6 +29,7 @@ void Event::_lazyLoad() const
   wchar_t * name = NULL;
   cpex_event_string(_hsPtr, &name, &_type);
   _displayText = QString::fromWCharArray(name);
+  free(name);
 }
 
 QString Event::displayText() const

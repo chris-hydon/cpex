@@ -5,6 +5,10 @@ ProcessModel::ProcessModel(const QString & rootExpression, QObject * parent) :
   QAbstractItemModel(parent)
 {
   _rootProcess = CSPMSession::getSession()->compileExpression(rootExpression);
+  if (_rootProcess == NULL)
+  {
+    _rootProcess = CSPMSession::getSession()->compileExpression("STOP");
+  }
 }
 
 ProcessModel::~ProcessModel()

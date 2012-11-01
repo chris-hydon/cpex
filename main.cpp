@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
   hs_init_ghc(&argc, &argv, conf);
 
   QApplication a(argc, argv);
-  MainWindow * w = new MainWindow();
+  MainWindow * w = MainWindow::get();
   w->show();
 
   int ret = a.exec();

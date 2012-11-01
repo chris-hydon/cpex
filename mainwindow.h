@@ -12,14 +12,17 @@ class MainWindow : public QMainWindow
   Q_OBJECT
     
 public:
-  explicit MainWindow(QWidget *parent = 0);
+  explicit MainWindow(QWidget * parent = 0);
   ~MainWindow();
+  static MainWindow * get();
+  static Ui::MainWindow * getUi();
 
 public slots:
   void actionOpen();
 
 private:
-  Ui::MainWindow *ui;
+  static MainWindow * window;
+  Ui::MainWindow * ui;
 };
 
 #endif // MAINWINDOW_H

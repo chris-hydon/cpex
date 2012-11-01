@@ -1,5 +1,8 @@
 #include "processtree.h"
 
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
 ProcessTree::ProcessTree(QWidget *parent) :
   QTreeView(parent)
 {
@@ -12,6 +15,6 @@ void ProcessTree::loadInitialState()
   {
     delete _model;
   }
-  _model = new ProcessModel("PHILS", this);
+  _model = new ProcessModel(MainWindow::getUi()->qleExpression->text(), this);
   setModel(_model);
 }

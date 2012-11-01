@@ -4,7 +4,23 @@
 #include <QFileDialog>
 #include "cspmsession.h"
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow * MainWindow::window = NULL;
+
+MainWindow * MainWindow::get()
+{
+  if (MainWindow::window == NULL)
+  {
+    MainWindow::window = new MainWindow();
+  }
+  return MainWindow::window;
+}
+
+Ui::MainWindow * MainWindow::getUi()
+{
+  return MainWindow::get()->ui;
+}
+
+MainWindow::MainWindow(QWidget * parent) :
   QMainWindow(parent),
   ui(new Ui::MainWindow)
 {

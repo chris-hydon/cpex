@@ -14,11 +14,9 @@ public:
 private:
   void * _hsPtr;
   mutable QString _displayText;
-  mutable char _type;
+  mutable unsigned char _type;
 
   void _lazyLoad() const;
 };
-
-uint qHash(const Event & event);
 
 #endif // EVENT_H

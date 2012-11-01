@@ -10,7 +10,6 @@ class ProcessTree : public QTreeView
   Q_OBJECT
 public:
   explicit ProcessTree(QWidget *parent = 0);
-  ~ProcessTree();
   
 signals:
   

@@ -6,11 +6,6 @@ ProcessTree::ProcessTree(QWidget *parent) :
   _model = NULL;
 }
 
-ProcessTree::~ProcessTree()
-{
-  delete _model;
-}
-
 void ProcessTree::loadInitialState()
 {
   if (_model != NULL)

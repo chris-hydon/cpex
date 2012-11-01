@@ -8,6 +8,7 @@ Process::Process(void * hsPtr, const Process * parent, const Event * cause,
   int index) : _hsPtr(hsPtr), _parent(parent), _cause(cause), _index(index)
 {
   _next = NULL;
+  _displayText = QString();
 }
 
 Process::~Process()
@@ -54,7 +55,7 @@ QList<QPair<Event *, Process *> *> * Process::transitions() const
 
 QString Process::displayText() const
 {
-  if (_displayText == NULL)
+  if (_displayText == QString())
   {
     wchar_t * str = NULL;
     cpex_process_string(_hsPtr, &str);

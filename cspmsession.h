@@ -8,18 +8,19 @@ class CSPMSession
 {
 public:
   static CSPMSession * getSession();
-  static void free();
+  static void freeSession();
 
   int loadFile(QString fileName);
   Process * compileExpression(QString expression);
+  QStringList procCallNames();
 
 private:
-  static CSPMSession * session;
+  static CSPMSession * _session;
 
   CSPMSession();
   ~CSPMSession();
-  void * hs_session;
-  void * file;
+  void * _hsSession;
+  void * _file;
 };
 
 #endif // CSPMSESSION_H

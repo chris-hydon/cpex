@@ -25,6 +25,12 @@ MainWindow::MainWindow(QWidget * parent) :
   ui(new Ui::MainWindow)
 {
   ui->setupUi(this);
+
+  // These are the size ratios of items in the splitter. However, this does not
+  // work if the sizes given are too small.
+  QList<int> defaultSizes;
+  defaultSizes << 200 << 500 << 200;
+  ui->qlsSplitter->setSizes(defaultSizes);
 }
 
 MainWindow::~MainWindow()
@@ -47,6 +53,7 @@ void MainWindow::actionOpen()
     else
     {
       status = "Loaded file: " + file;
+      ui->qtvSessions->fileLoaded();
     }
     ui->qsbStatus->showMessage(tr(status.toAscii()), 5000);
   }

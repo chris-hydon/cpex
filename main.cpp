@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   int ret = a.exec();
   delete w;
 
-  CSPMSession::getSession()->free();
+  CSPMSession::getSession()->freeSession();
   hs_exit();
 
   return ret;

@@ -56,6 +56,9 @@ foreign export ccall
   cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
 
 foreign export ccall
+  cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CUInt) ->
+    Ptr CUInt -> IO CUInt
+foreign export ccall
   cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 
 foreign export ccall
@@ -292,6 +295,30 @@ cpex_op_proccall inProc outProc outName = do
     Nothing -> return 0
   where next (PProcCall n pn) = Just (n, pn)
         next _ = Nothing
+
+-- Input: CSPM session.
+-- Output: Array of strings representing the bound names of proc calls.
+--         Array of unsigned ints representing the number of parameters for the
+--         respective proc call.
+cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CUInt) ->
+  Ptr CUInt -> IO CUInt
+cpex_proccall_names sessPtr outNames outParams outCount = runSession sessPtr $ do
+  ns <- getBoundNames
+  let customs = filter ((flip notElem) $ map name $ builtins False) ns
+  pairs <- mapM maybePair customs
+  let (names, paramCounts) = unzip $ catMaybes pairs
+  namesList <- liftIO $ mapM (newCWString . show) names
+  namesArray <- liftIO $ newArray namesList
+  paramsArray <- liftIO $ newArray $ map fromIntegral paramCounts
+  liftIO $ poke outNames namesArray
+  liftIO $ poke outParams paramsArray
+  liftIO $ poke outCount $ fromIntegral $ length names
+  where maybePair name = do
+          ForAll _ t <- typeOfName name
+          return (isProcCall (name, 0) t)
+        isProcCall (name, x) TProc = Just (name, x)
+        isProcCall (name, x) (TFunction _ p) = isProcCall (name, x + 1) p
+        isProcCall _ _ = Nothing
 
 -- Input: CSPM session.
 --        CSPM expression string.

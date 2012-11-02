@@ -30,7 +30,8 @@ SOURCES += \
     model/processmodel.cpp \
     model/process.cpp \
     cspmsession.cpp \
-    model/event.cpp
+    model/event.cpp \
+    widget/tracelistwidget.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -38,7 +39,8 @@ HEADERS += \
     model/processmodel.h \
     model/process.h \
     cspmsession.h \
-    model/event.h
+    model/event.h \
+    widget/tracelistwidget.h
 
 FORMS += \
     mainwindow.ui

@@ -6,15 +6,21 @@
 class Event
 {
 public:
+  enum Type
+  {
+    User, Tau, Tick
+  };
+
   Event(void * _hsPtr);
   ~Event();
   QString displayText() const;
   bool operator ==(const Event & other) const;
+  Type type() const;
 
 private:
   void * _hsPtr;
   mutable QString _displayText;
-  mutable unsigned char _type;
+  mutable Type _type;
 
   void _lazyLoad() const;
 };

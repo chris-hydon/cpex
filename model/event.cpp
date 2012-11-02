@@ -14,7 +14,7 @@ Event::~Event()
 
 void Event::_lazyLoad() const
 {
-  _type = 0;
+  _type = User;
   wchar_t * name = NULL;
   cpex_event_string(_hsPtr, &name, &_type);
   _displayText = QString::fromWCharArray(name);
@@ -28,6 +28,11 @@ QString Event::displayText() const
     _lazyLoad();
   }
   return _displayText;
+}
+
+Event::Type Event::type() const
+{
+  return _type;
 }
 
 bool Event::operator ==(const Event & other) const

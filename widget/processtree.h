@@ -10,11 +10,15 @@ class ProcessTree : public QTreeView
   Q_OBJECT
 public:
   explicit ProcessTree(QWidget *parent = 0);
-  
+
 signals:
-  
+  void itemSelected(const QModelIndex & index);
+
 public slots:
   void loadInitialState();
+
+protected slots:
+  void selectionChanged();
 
 private:
   ProcessModel * _model;

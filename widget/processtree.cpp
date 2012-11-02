@@ -17,4 +17,16 @@ void ProcessTree::loadInitialState()
   }
   _model = new ProcessModel(MainWindow::getUi()->qleExpression->text(), this);
   setModel(_model);
+  connect(
+    selectionModel(),
+    SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+    this,
+    SLOT(selectionChanged())
+  );
+}
+
+void ProcessTree::selectionChanged()
+{
+  QModelIndex index = selectedIndexes()[0];
+  emit itemSelected(index);
 }

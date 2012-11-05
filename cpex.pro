@@ -32,7 +32,9 @@ SOURCES += \
     cspmsession.cpp \
     model/event.cpp \
     widget/tracelistwidget.cpp \
-    widget/sessiontree.cpp
+    widget/sessiontree.cpp \
+    model/sessionmodel.cpp \
+    programstate.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -42,7 +44,9 @@ HEADERS += \
     cspmsession.h \
     model/event.h \
     widget/tracelistwidget.h \
-    widget/sessiontree.h
+    widget/sessiontree.h \
+    model/sessionmodel.h \
+    programstate.h
 
 FORMS += \
     mainwindow.ui

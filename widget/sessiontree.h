@@ -8,7 +8,6 @@ class SessionTree : public QTreeView
   Q_OBJECT
 public:
   explicit SessionTree(QWidget * parent = 0);
-  void fileLoaded();
 
 signals:
 

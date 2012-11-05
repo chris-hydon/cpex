@@ -16,19 +16,22 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QSplitter" name="qlsSplitter">
+     <widget class="QSplitter" name="qspSplitter">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="SessionTree" name="qtvSessions">
+       <property name="rootIsDecorated">
+        <bool>true</bool>
+       </property>
        <property name="headerHidden">
         <bool>true</bool>
        </property>
       </widget>
-      <widget class="QWidget" name="">
-       <layout class="QVBoxLayout" name="qlvExpression" stretch="0,0">
+      <widget class="QWidget" name="layoutWidget">
+       <layout class="QVBoxLayout" name="qbvExpression" stretch="0,0">
         <item>
-         <layout class="QHBoxLayout" name="qlhExpressionEntry">
+         <layout class="QHBoxLayout" name="qbhExpressionEntry">
           <item>
            <widget class="QLabel" name="qlbExpression">
             <property name="text">
@@ -56,10 +59,10 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
-       <layout class="QVBoxLayout" name="qlvTrace_2">
+      <widget class="QWidget" name="layoutWidget1">
+       <layout class="QVBoxLayout" name="qbvTrace">
         <item>
-         <layout class="QHBoxLayout" name="qlhTraceLabel">
+         <layout class="QHBoxLayout" name="qbhTraceLabel">
           <item>
            <widget class="QLabel" name="qlbTrace">
             <property name="text">

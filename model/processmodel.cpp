@@ -1,14 +1,11 @@
-#include "cspmsession.h"
 #include "processmodel.h"
 
-ProcessModel::ProcessModel(const QString & rootExpression, QObject * parent) :
-  QAbstractItemModel(parent)
+#include "cspmsession.h"
+#include "programstate.h"
+
+ProcessModel::ProcessModel(const Process * rootProcess, QObject * parent) :
+  QAbstractItemModel(parent), _rootProcess(rootProcess)
 {
-  _rootProcess = CSPMSession::getSession()->compileExpression(rootExpression);
-  if (_rootProcess == NULL)
-  {
-    _rootProcess = CSPMSession::getSession()->compileExpression("STOP");
-  }
 }
 
 ProcessModel::~ProcessModel()

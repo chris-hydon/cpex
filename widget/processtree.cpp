@@ -1,21 +1,30 @@
 #include "processtree.h"
 
+#include "programstate.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-ProcessTree::ProcessTree(QWidget *parent) :
-  QTreeView(parent)
+ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
 {
   _model = NULL;
 }
 
 void ProcessTree::loadInitialState()
 {
+  Process * p = ProgramState::currentSession()->compileExpression(
+    MainWindow::getUi()->qleExpression->text());
+  if (p == NULL)
+  {
+    MainWindow::getUi()->qsbStatus->showMessage(
+      tr("Invalid expression for the current file."), 5000);
+    return;
+  }
+
   if (_model != NULL)
   {
     delete _model;
   }
-  _model = new ProcessModel(MainWindow::getUi()->qleExpression->text(), this);
+  _model = new ProcessModel(p, this);
   setModel(_model);
   connect(
     selectionModel(),

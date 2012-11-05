@@ -3,24 +3,24 @@
 
 #include "model/process.h"
 #include <QString>
+#include <QStringList>
 
 class CSPMSession
 {
 public:
-  static CSPMSession * getSession();
-  static void freeSession();
-
-  int loadFile(QString fileName);
-  Process * compileExpression(QString expression);
-  QStringList procCallNames();
-
-private:
-  static CSPMSession * _session;
-
   CSPMSession();
   ~CSPMSession();
+  const QString & fileName() const;
+  int loadFile(const QString & fileName);
+  Process * compileExpression(const QString & expression);
+  QStringList procCallNames() const;
+
+private:
   void * _hsSession;
   void * _file;
+  QString _fileName;
+  mutable QStringList _procCallNames;
+  mutable bool _procCallNamesLoaded;
 };
 
 #endif // CSPMSESSION_H

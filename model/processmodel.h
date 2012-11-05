@@ -7,7 +7,7 @@
 class ProcessModel : public QAbstractItemModel
 {
 public:
-  ProcessModel(const QString & rootExpression, QObject * parent = 0);
+  ProcessModel(const Process * rootProcess, QObject * parent = 0);
   ~ProcessModel();
   QModelIndex index(int row, int column, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex & index) const;

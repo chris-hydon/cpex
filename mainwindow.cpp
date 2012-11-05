@@ -3,6 +3,7 @@
 
 #include <QFileDialog>
 #include "cspmsession.h"
+#include "programstate.h"
 
 MainWindow * MainWindow::window = NULL;
 
@@ -30,7 +31,12 @@ MainWindow::MainWindow(QWidget * parent) :
   // work if the sizes given are too small.
   QList<int> defaultSizes;
   defaultSizes << 200 << 500 << 200;
-  ui->qlsSplitter->setSizes(defaultSizes);
+  ui->qspSplitter->setSizes(defaultSizes);
+
+  connect(
+    this, SIGNAL(fileLoaded(const CSPMSession *)),
+    ui->qtvSessions->model(), SLOT(sessionLoaded(const CSPMSession *))
+  );
 }
 
 MainWindow::~MainWindow()
@@ -44,16 +50,16 @@ void MainWindow::actionOpen()
     QDir::homePath(), tr("CSP definition files (*.csp);;All files (*.*)"));
   if (file != NULL)
   {
-    int r = CSPMSession::getSession()->loadFile(file);
     QString status;
-    if (!r)
+    const CSPMSession * opened = ProgramState::newSession(file);
+    if (opened == NULL)
     {
       status = "Error while loading file: " + file;
     }
     else
     {
       status = "Loaded file: " + file;
-      ui->qtvSessions->fileLoaded();
+      emit fileLoaded(opened);
     }
     ui->qsbStatus->showMessage(tr(status.toAscii()), 5000);
   }

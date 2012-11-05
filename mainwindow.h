@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "cspmsession.h"
 
 namespace Ui {
 class MainWindow;
@@ -19,6 +20,9 @@ public:
 
 public slots:
   void actionOpen();
+
+signals:
+  void fileLoaded(const CSPMSession * session);
 
 private:
   static MainWindow * window;

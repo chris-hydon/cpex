@@ -5,28 +5,25 @@
 
 #include <QList>
 #include <QPair>
+#include <QSharedData>
 #include <QString>
+
+class ProcessData;
 
 class Process
 {
 public:
-  Process(void * hsPtr, const Process * parent = NULL, const Event * cause = NULL,
-    int index = 0);
+  Process(void * hsPtr);
+  Process(const Process & other);
   ~Process();
   QList<QPair<Event *, Process *> *> * transitions() const;
+  const Process * findEqual(const Process * to) const;
   QString displayText() const;
-  const Process * parent() const;
-  const Event * causedBy() const;
-  int parentTransitionIndex() const;
   bool operator ==(const Process & other) const;
 
 private:
-  void * _hsPtr;
-  const Process * _parent;
-  const Event * _cause;
-  int _index;
-  mutable QList<QPair<Event *, Process *> *> * _next;
-  mutable QString _displayText;
+  Process(void * hsPtr, const Process * parent);
+  QExplicitlySharedDataPointer<ProcessData> _d;
 };
 
 #endif // PROCESS_H

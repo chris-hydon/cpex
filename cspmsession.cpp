@@ -1,7 +1,7 @@
 #include "cspmsession.h"
 
 #include "haskell/CSPM/Foreign_stub.h"
-#include "haskell/Cpex/Transitions_stub.h"
+#include "haskell/Cpex/Foreign_stub.h"
 #include <QStringList>
 
 CSPMSession::CSPMSession()

@@ -1,6 +1,6 @@
 #include "event.h"
 
-#include "haskell/Cpex/Transitions_stub.h"
+#include "haskell/Cpex/Foreign_stub.h"
 #include <HsFFI.h>
 
 Event::Event(void * hsPtr) : _hsPtr(hsPtr)

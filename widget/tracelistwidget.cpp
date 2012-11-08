@@ -1,6 +1,7 @@
 #include "tracelistwidget.h"
 
 #include "model/process.h"
+#include "model/processmodel.h"
 
 TraceListWidget::TraceListWidget(QWidget * parent) : QListView(parent)
 {
@@ -10,15 +11,15 @@ TraceListWidget::TraceListWidget(QWidget * parent) : QListView(parent)
 
 void TraceListWidget::setTraces(const QModelIndex & index)
 {
-  const Process * proc = static_cast<Process *>(index.internalPointer());
+  const ProcessItem * proc = static_cast<ProcessItem *>(index.internalPointer());
   QStringList labels;
-  while (proc->parent() != NULL)
+  while (proc->parent != NULL)
   {
-    if (proc->causedBy()->type() != Event::Tau)
+    if (proc->cause->type() != Event::Tau)
     {
-      labels.prepend(proc->causedBy()->displayText());
+      labels.prepend(proc->cause->displayText());
     }
-    proc = proc->parent();
+    proc = proc->parent;
   }
 
   _model->setStringList(labels);

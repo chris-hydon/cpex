@@ -13,6 +13,7 @@ HS_DEPS += \
     transformers
 
 HS_SOURCES += \
+    haskell/Cpex/Foreign.hs \
     haskell/Cpex/Transitions.hs \
     haskell/CSPM/Foreign.hs
 
@@ -53,4 +54,5 @@ FORMS += \
 
 OTHER_FILES += \
     haskell/Cpex/Transitions.hs \
-    haskell/CSPM/Foreign.hs
+    haskell/CSPM/Foreign.hs \
+    haskell/Cpex/Foreign.hs

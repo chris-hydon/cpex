@@ -30,18 +30,18 @@ transitionsMap f = F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)
 -- by all interested processes).
 synchronize :: UProc -> S.Seq (S.Seq Event) -> Event -> Maybe (Event, UProc)
 synchronize (POp op ps) as ev = F.foldr (reduce ev) (Just (ev, POp op ps))
-              (S.zip3 (S.fromList [0..(S.length as)]) as ps)
+              (S.zip4 (S.fromList [0..(S.length as)]) as ps (fmap transitions ps))
   -- The reduce function checks that the given process/alphabet either ignores
   -- or provides the event. In the former case, the event does not modify the
   -- state of that process. In the latter, the event occurs within that process.
   -- If neither is true, the event is blocked so return Nothing.
   where reduce _ _ Nothing = Nothing
-        reduce ev (n, evs, p) (Just (e, POp op qs)) -- ev == e
+        reduce ev (n, evs, p, ts) (Just (e, POp op qs)) -- ev == e
           | F.notElem ev evs = Just (e, POp op qs)
           | isNothing lookup = Nothing
           | otherwise = Just (e, POp op (S.update n (fromJust lookup) qs))
           where lookup = foldr (\(e, pn) x -> if e == ev then Just pn else x)
-                  Nothing (transitions p)
+                  Nothing ts
 
 -- The transitions for an alphabetized parallel process are the transitions
 -- resulting from the events offered by each process in parallel, minus those
@@ -86,7 +86,7 @@ transitions (POp (PGenParallel evs) ps) = frees ++ syncs
   -- set of events to worry about.
         syncs = mapMaybe (synchronize (POp (PGenParallel evs) ps) as) $ F.toList evs'
         evs' = Tick S.<| evs
-        as = S.replicate (S.length ps) evs
+        as = S.replicate (S.length ps) evs'
 
 -- The transitions for a process with hidden events are the transitions of that
 -- process, with the hidden events replaced by tau.
@@ -126,8 +126,8 @@ transitions (PBinaryOp PInterrupt p1 p2) =
 -- process.
 transitions (PBinaryOp (PLinkParallel evm) p1 p2) = frees ++ syncs
   -- Free events: For p_i, those not equal to e_i for some (e1, e2) in evm.
-  where (free1, sync1) = partition (isFree fst) $ transitions p1
-        (free2, sync2) = partition (isFree snd) $ transitions p2
+  where (free1, sync1) = partition (isFree fst) $ ts1
+        (free2, sync2) = partition (isFree snd) $ ts2
         isFree f (ev, _) = F.all ((/= ev) . f) evm'
         frees =
           (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) pn p2)) free1) ++
@@ -142,7 +142,9 @@ transitions (PBinaryOp (PLinkParallel evm) p1 p2) = frees ++ syncs
               else if F.elem (e1, e2) evm
                 then Just (Tau, PBinaryOp (PLinkParallel evm) p1 p2)
                 else Nothing
-          ) [(t1, t2) | t1 <- transitions p1, t2 <- transitions p2]
+          ) [(t1, t2) | t1 <- ts1, t2 <- ts2]
+        ts1 = transitions p1
+        ts2 = transitions p2
         evm' = (Tick,Tick) S.<| evm
 
 -- Transitions of a chase-compressed process are those of the process after

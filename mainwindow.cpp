@@ -34,8 +34,8 @@ MainWindow::MainWindow(QWidget * parent) :
   ui->qspSplitter->setSizes(defaultSizes);
 
   connect(
-    this, SIGNAL(fileLoaded(const CSPMSession *)),
-    ui->qtvSessions->model(), SLOT(sessionLoaded(const CSPMSession *))
+    this, SIGNAL(fileLoaded(CSPMSession *)),
+    ui->qtvSessions->model(), SLOT(sessionLoaded(CSPMSession *))
   );
 }
 
@@ -51,7 +51,7 @@ void MainWindow::actionOpen()
   if (file != NULL)
   {
     QString status;
-    const CSPMSession * opened = ProgramState::newSession(file);
+    CSPMSession * opened = ProgramState::newSession(file);
     if (opened == NULL)
     {
       status = "Error while loading file: " + file;

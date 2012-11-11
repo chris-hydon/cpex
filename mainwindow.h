@@ -22,7 +22,7 @@ public slots:
   void actionOpen();
 
 signals:
-  void fileLoaded(const CSPMSession * session);
+  void fileLoaded(CSPMSession * session);
 
 private:
   static MainWindow * window;

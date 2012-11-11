@@ -19,7 +19,8 @@ public:
   QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
 
 public slots:
-  void sessionLoaded(const CSPMSession * session);
+  void sessionLoaded(CSPMSession * session);
+  void itemActivated(const QModelIndex & index);
 
 private:
   QList<const SessionItem *> * _sessions;

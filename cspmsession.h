@@ -14,6 +14,7 @@ public:
   int loadFile(const QString & fileName);
   Process * compileExpression(const QString & expression);
   QStringList procCallNames() const;
+  bool operator ==(const CSPMSession & other);
 
 private:
   void * _hsSession;

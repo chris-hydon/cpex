@@ -85,3 +85,9 @@ QStringList CSPMSession::procCallNames() const
 
   return _procCallNames;
 }
+
+bool CSPMSession::operator ==(const CSPMSession & other)
+{
+  // Two sessions are equal if they point to the same Haskell session.
+  return other._hsSession == _hsSession;
+}

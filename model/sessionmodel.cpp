@@ -1,7 +1,10 @@
 #include "sessionmodel.h"
 
 #include "cspmsession.h"
+#include "mainwindow.h"
 #include "programstate.h"
+#include "ui_mainwindow.h"
+#include <QFileInfo>
 #include <QStringList>
 
 class SessionItem
@@ -12,7 +15,7 @@ public:
     Session, ProcCall
   };
 
-  SessionItem(const CSPMSession * session) : _type(Session), _session(session),
+  SessionItem(CSPMSession * session) : _type(Session), _session(session),
     _parent(NULL)
   {
     _procs = new QList<SessionItem *>();
@@ -37,7 +40,7 @@ public:
 
   QList<SessionItem *> * _procs;
   const Type _type;
-  const CSPMSession * _session;
+  CSPMSession * _session;
   const SessionItem * _parent;
   const QString _displayStr;
 };
@@ -119,11 +122,11 @@ QVariant SessionModel::data(const QModelIndex & index, int role) const
   }
   else
   {
-    return item->_session->fileName();
+    return QFileInfo(item->_session->fileName()).fileName();
   }
 }
 
-void SessionModel::sessionLoaded(const CSPMSession * session)
+void SessionModel::sessionLoaded(CSPMSession * session)
 {
   emit layoutAboutToBeChanged();
   const SessionItem * sessionItem = new SessionItem(session);
@@ -136,4 +139,32 @@ void SessionModel::sessionLoaded(const CSPMSession * session)
   }
 
   emit layoutChanged();
+}
+
+void SessionModel::itemActivated(const QModelIndex & index)
+{
+  const SessionItem * item = static_cast<const SessionItem *>(index.internalPointer());
+  CSPMSession * session = NULL;
+  if (item->_type == SessionItem::ProcCall)
+  {
+    session = item->_parent->_session;
+  }
+  else
+  {
+    session = item->_session;
+  }
+
+  if (!(*session == *ProgramState::currentSession()))
+  {
+    ProgramState::setCurrentSession(session);
+  }
+
+  if (item->_type == SessionItem::ProcCall)
+  {
+    MainWindow::getUi()->qleExpression->setText(item->_displayStr);
+    if (!item->_displayStr.contains('_'))
+    {
+      MainWindow::getUi()->qtvExplorer->loadInitialState();
+    }
+  }
 }

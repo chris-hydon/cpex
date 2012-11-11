@@ -16,12 +16,6 @@ public:
     _parent(NULL)
   {
     _procs = new QList<SessionItem *>();
-    QStringList procs = session->procCallNames();
-    QString proc;
-    foreach (proc, procs)
-    {
-      _procs->append(new SessionItem(this, proc));
-    }
   }
 
   SessionItem(const SessionItem * parent, const QString & displayStr) :

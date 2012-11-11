@@ -3,6 +3,7 @@
 #include "programstate.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QClipboard>
 
 ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
 {
@@ -32,6 +33,18 @@ void ProcessTree::loadInitialState()
     this,
     SLOT(selectionChanged())
   );
+}
+
+void ProcessTree::showContextMenu(const QPoint & pos)
+{
+  QMenu menu;
+  menu.addAction("Copy");
+
+  QAction * selectedItem = menu.exec(mapToGlobal(pos));
+  if (selectedItem)
+  {
+    QApplication::clipboard()->setText(indexAt(pos).data(Qt::EditRole).toString());
+  }
 }
 
 void ProcessTree::selectionChanged()

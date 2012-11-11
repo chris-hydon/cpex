@@ -37,6 +37,13 @@ MainWindow::MainWindow(QWidget * parent) :
     this, SIGNAL(fileLoaded(CSPMSession *)),
     ui->qtvSessions->model(), SLOT(sessionLoaded(CSPMSession *))
   );
+
+  // Context menu for explorer.
+  ui->qtvExplorer->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(
+    ui->qtvExplorer, SIGNAL(customContextMenuRequested(const QPoint &)),
+    ui->qtvExplorer, SLOT(showContextMenu(const QPoint &))
+  );
 }
 
 MainWindow::~MainWindow()

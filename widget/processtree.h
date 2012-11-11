@@ -16,6 +16,7 @@ signals:
 
 public slots:
   void loadInitialState();
+  void showContextMenu(const QPoint &);
 
 protected slots:
   void selectionChanged();

@@ -117,14 +117,17 @@ int ProcessModel::columnCount(const QModelIndex &) const
 
 QVariant ProcessModel::data(const QModelIndex & index, int role) const
 {
-  if (role != Qt::DisplayRole || !index.isValid())
+  if ((role != Qt::DisplayRole && role != Qt::EditRole) || !index.isValid())
   {
     return QVariant();
   }
 
   const ProcessItem * p = static_cast<ProcessItem *>(index.internalPointer());
   QString display = QString("%1: %2").arg(p->cause->displayText(), p->process->displayText());
-  display.truncate(100);
+  if (role == Qt::DisplayRole)
+  {
+    display.truncate(100);
+  }
   return display;
 }
 

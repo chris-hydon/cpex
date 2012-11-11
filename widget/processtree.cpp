@@ -33,6 +33,11 @@ void ProcessTree::loadInitialState()
     this,
     SLOT(selectionChanged())
   );
+
+  // Horizontal scroll bar. Need to do this after loading the model for some reason.
+  header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+  header()->setResizeMode(0, QHeaderView::ResizeToContents);
+  header()->setStretchLastSection(false);
 }
 
 void ProcessTree::showContextMenu(const QPoint & pos)

@@ -23,14 +23,16 @@ transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
                   [(Event, UProc)]
 transitionsMap f = F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
 
--- Given a parallelized process, a list of alphabets and an event, returns
--- Maybe the (Event, p) pair where p is the result of applying the event to the
--- input process, if that event is part of the synchronization and can be
+-- Given a parallelized process, a list of alphabets, an event and the result of
+-- applying fmap transitions to the input process (passed manually for efficiency),
+-- returns Maybe the (Event, p) pair where p is the result of applying the event to
+-- the input process, if that event is part of the synchronization and can be
 -- applied (returns Nothing if the event is free or if the event is not offered
 -- by all interested processes).
-synchronize :: UProc -> S.Seq (S.Seq Event) -> Event -> Maybe (Event, UProc)
-synchronize (POp op ps) as ev = F.foldr (reduce ev) (Just (ev, POp op ps))
-              (S.zip4 (S.fromList [0..(S.length as)]) as ps (fmap transitions ps))
+synchronize :: UProc -> S.Seq (S.Seq Event) -> S.Seq [(Event, UProc)] -> Event ->
+  Maybe (Event, UProc)
+synchronize (POp op ps) as tss ev = F.foldr (reduce ev) (Just (ev, POp op ps))
+              (S.zip4 (S.fromList [0..(S.length as)]) as ps tss)
   -- The reduce function checks that the given process/alphabet either ignores
   -- or provides the event. In the former case, the event does not modify the
   -- state of that process. In the latter, the event occurs within that process.
@@ -56,8 +58,9 @@ transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
   -- Other events: allow only if all processes that synchronize on the event
   -- offer it. Map each event to Just the resulting transition, or Nothing if
   -- the event is blocked.
-        syncs = mapMaybe (synchronize (POp (PAlphaParallel as) ps) as')
+        syncs = mapMaybe (synchronize (POp (PAlphaParallel as) ps) as' ts)
           (Set.toList sevs)
+        ts = fmap transitions ps
         as' = fmap (Tick S.<|) as
 
 -- The transitions for a process with an exception handler are the events that
@@ -84,8 +87,10 @@ transitions (POp (PGenParallel evs) ps) = frees ++ syncs
   -- The definition of syncs here is almost identical to that in alphabetized
   -- parallel, except this time it's slightly simpler because we only have one
   -- set of events to worry about.
-        syncs = mapMaybe (synchronize (POp (PGenParallel evs) ps) as) $ F.toList evs'
+        syncs = mapMaybe (synchronize (POp (PGenParallel evs) ps) as ts) $
+          F.toList evs'
         evs' = Tick S.<| evs
+        ts = fmap transitions ps
         as = S.replicate (S.length ps) evs'
 
 -- The transitions for a process with hidden events are the transitions of that
@@ -110,7 +115,7 @@ transitions (POp PInterleave ps) = maybeTick $
           | tickProcs == Nothing = ts
           | otherwise            = (fromJust tickProcs):ts
         tickProcs = synchronize (POp PInterleave ps)
-          (S.replicate (S.length ps) (S.singleton Tick)) Tick
+          (S.replicate (S.length ps) (S.singleton Tick)) (fmap transitions ps) Tick
 
 -- The transitions for an interrupt are the events offered by p1 plus those
 -- offered by p2, with the processes resulting from an event in p1 replaced by

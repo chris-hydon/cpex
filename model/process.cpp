@@ -101,8 +101,13 @@ QList<QPair<Event *, Process *> *> * Process::transitions() const
   return _d->next;
 }
 
-const Process * Process::findEqual(const Process * to) const
+const Process * Process::findEqual(const Process *) const
 {
+  // Removed - should be able to do better, right now this is slow for states
+  // represented by large strings and might not necessarily match identical
+  // states (since most operators are associative).
+  return NULL;
+/*
   // Look for "to" in the list of states in this machine.
   const Process * found = _d->states->value(to->displayText(), NULL);
   if (found == NULL)
@@ -110,6 +115,7 @@ const Process * Process::findEqual(const Process * to) const
     _d->states->insert(to->displayText(), to);
   }
   return found;
+*/
 }
 
 QString Process::displayText() const

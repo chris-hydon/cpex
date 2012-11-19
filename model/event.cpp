@@ -32,6 +32,10 @@ QString Event::displayText() const
 
 Event::Type Event::type() const
 {
+  if (_displayText == NULL)
+  {
+    _lazyLoad();
+  }
   return _type;
 }
 

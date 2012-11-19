@@ -12,7 +12,7 @@ public:
   ~CSPMSession();
   const QString & fileName() const;
   int loadFile(const QString & fileName);
-  Process * compileExpression(const QString & expression);
+  Process * compileExpression(const QString & expression) const;
   QStringList procCallNames() const;
   bool operator ==(const CSPMSession & other);
 

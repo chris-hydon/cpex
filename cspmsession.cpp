@@ -38,7 +38,7 @@ int CSPMSession::loadFile(const QString & fileName)
   return cspm_session_load_file(_hsSession, (void *) fileName.toStdWString().c_str(), &_file);
 }
 
-Process * CSPMSession::compileExpression(const QString & expression)
+Process * CSPMSession::compileExpression(const QString & expression) const
 {
   void * proc = NULL;
   int r = cpex_expression_value(_hsSession, (void *) expression.toStdWString().c_str(), &proc);

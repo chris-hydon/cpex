@@ -5,6 +5,7 @@ module Cpex.Transitions (
 import CSPM
 import Data.List
 import Data.Maybe
+import Data.Ord
 
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
@@ -21,7 +22,8 @@ transitions :: UProc -> [(Event, UProc)]
 -- pairs.
 transitionsMap :: (Int -> (Event, UProc) -> (Event, UProc)) -> S.Seq UProc ->
                   [(Event, UProc)]
-transitionsMap f = F.concat . (S.mapWithIndex (\n p -> map (f n) (transitions p)))
+transitionsMap f = (F.foldr tMerge []) .
+  (S.mapWithIndex (\n p -> sortBy (comparing fst) $ map (f n) $ transitions p))
 
 -- Given a parallelized process, a list of sorted event alphabets, the result of
 -- applying fmap transitions to the input process (passed manually for efficiency)
@@ -96,7 +98,7 @@ transitions (POp (PAlphaParallel as) ps) = frees ++ syncs
   -- Only Tau events are free, those not appearing in the alphabet are blocked.
   -- Since all events in frees are Tau, which is the "least" event, no need to
   -- sort this or the result.
-        frees = sort . filter ((== Tau) . fst) $ transitionsMap alphaPar ps
+        frees = filter ((== Tau) . fst) $ transitionsMap alphaPar ps
         alphaPar n (ev, pn) = (ev, POp (PAlphaParallel as) (S.update n pn ps))
   -- Other events: allow only if all processes that synchronize on the event
   -- offer it.
@@ -114,16 +116,16 @@ transitions (PBinaryOp (PException evs) p1 p2) = map handle $ transitions p1
 
 -- The transitions for external choice are to perform some event and move to the
 -- resulting process, and the processes resulting from each tau event.
-transitions (POp PExternalChoice ps) = sort $ transitionsMap fixTau ps
+transitions (POp PExternalChoice ps) = transitionsMap fixTau ps
   where fixTau n (Tau, pn) = (Tau, POp PExternalChoice (S.update n pn ps))
         fixTau _ (ev, pn) = (ev, pn)
 
 -- The transitions for a generalized parallel process are the free events
 -- performed by each process independently, plus the synchronized events that
 -- are offered by all processes.
-transitions (POp (PGenParallel evs) ps) = sort $ frees ++ syncs
+transitions (POp (PGenParallel evs) ps) = foldr (insertBy (comparing fst)) frees syncs
   -- Free events: anything not in evs.
-  where frees = filterFree (S.viewl evs') $ sort $ transitionsMap genPar ps
+  where frees = filterFree (S.viewl evs') $ transitionsMap genPar ps
         filterFree _ [] = []
         filterFree S.EmptyL ts = ts
         filterFree (e S.:< es) ((en, pn):ts)
@@ -141,7 +143,7 @@ transitions (POp (PGenParallel evs) ps) = sort $ frees ++ syncs
 -- The transitions for a process with hidden events are the transitions of that
 -- process, with the hidden events replaced by tau.
 transitions (PUnaryOp (PHide evs) p) =
-  sort $ mapHas hideTau (S.unstableSort evs) $ transitions p
+  sortBy (comparing fst) $ mapHas hideTau (S.unstableSort evs) $ transitions p
   where hideTau x (ev, p) = (if x then Tau else ev, PUnaryOp (PHide evs) p)
 
 -- The transitions for internal choice are to perform a tau event for each
@@ -164,8 +166,8 @@ transitions (POp PInterleave ps) = maybeTick $
 -- The transitions for an interrupt are the events offered by p1 plus those
 -- offered by p2, with the processes resulting from an event in p1 replaced by
 -- an equivalent process interruptable by p2.
-transitions (PBinaryOp PInterrupt p1 p2) = sort $
-  (map (\(ev, pn) -> (ev, PBinaryOp PInterrupt pn p2)) (transitions p1)) ++
+transitions (PBinaryOp PInterrupt p1 p2) = tMerge
+  (map (\(ev, pn) -> (ev, PBinaryOp PInterrupt pn p2)) (transitions p1))
   (map tauOrInterrupt (transitions p2))
   where tauOrInterrupt (Tau, pn) = (Tau, PBinaryOp PInterrupt p1 pn)
         tauOrInterrupt x = x
@@ -173,18 +175,18 @@ transitions (PBinaryOp PInterrupt p1 p2) = sort $
 -- The transitions for a link parallel process are all free events plus those
 -- event pairs in the mapping where each side is offered by the respective
 -- process.
-transitions (PBinaryOp (PLinkParallel evm) p1 p2) = sort $ frees ++ syncs
+transitions (PBinaryOp (PLinkParallel evm) p1 p2) = tMerge frees syncs
   -- Free events: For p_i, those not equal to e_i for some (e1, e2) in evm.
   where (free1, sync1) = partition (isFree fst) $ ts1
         (free2, sync2) = partition (isFree snd) $ ts2
         isFree f (ev, _) = F.all ((/= ev) . f) evm'
-        frees =
-          (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) pn p2)) free1) ++
+        frees = tMerge
+          (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) pn p2)) free1)
           (map (\(ev, pn) -> (ev, PBinaryOp (PLinkParallel evm) p1 pn)) free2)
   -- Synced events: Any (e1, e2) in evm such that e1 is offered by p1 and e2 is
   -- offered by p2. The event is then hidden. For Tick, the same rules apply as
   -- with other parallel operators: sync on Tick but do not hide it.
-        syncs = mapMaybe (
+        syncs = sortBy (comparing fst) $ mapMaybe (
             \((e1, p1), (e2, p2)) ->
               if e1 == Tick && e2 == Tick
                 then Just (Tick, PBinaryOp (PLinkParallel evm) p1 p2)
@@ -213,7 +215,7 @@ transitions (PUnaryOp (PPrefix ev) p) = [(ev, p)]
 
 -- The transitions of a renamed process are the transitions of the original
 -- process, with events mapped to the new process.
-transitions (PUnaryOp (PRename evm) p) = sort $
+transitions (PUnaryOp (PRename evm) p) = sortBy (comparing fst) $
   map (\(ev, pn) -> (fromMaybe ev (lookup ev (F.toList evm)),
     PUnaryOp (PRename evm) pn)) $ transitions p
 
@@ -234,3 +236,10 @@ transitions (PBinaryOp PSlidingChoice p1 p2) = (Tau, p2) :
 
 -- The transitions for a process call are simply those of the inner process
 transitions (PProcCall pn p) = transitions p
+
+tMerge :: [(Event, UProc)] -> [(Event, UProc)] -> [(Event, UProc)]
+tMerge [] ys = ys
+tMerge xs [] = xs
+tMerge (x:xs) (y:ys)
+  | comparing fst x y == GT = y:(tMerge (x:xs) ys)
+  | otherwise               = x:(tMerge xs (y:ys))

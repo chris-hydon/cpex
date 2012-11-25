@@ -1,7 +1,10 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <QExplicitlySharedDataPointer>
 #include <QString>
+
+class EventData;
 
 class Event
 {
@@ -11,16 +14,17 @@ public:
     User, Tau, Tick
   };
 
+  Event();
+  Event(const Event & other);
   Event(void * _hsPtr);
   ~Event();
   QString displayText() const;
-  bool operator ==(const Event & other) const;
   Type type() const;
+  bool operator ==(const Event & other) const;
+  Event & operator =(const Event & other);
 
 private:
-  void * _hsPtr;
-  mutable QString _displayText;
-  mutable Type _type;
+  QExplicitlySharedDataPointer<EventData> _d;
 
   void _lazyLoad() const;
 };

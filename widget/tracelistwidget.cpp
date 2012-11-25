@@ -15,9 +15,9 @@ void TraceListWidget::setTraces(const QModelIndex & index)
   QStringList labels;
   while (proc->parent != NULL)
   {
-    if (proc->cause->type() != Event::Tau)
+    if (proc->cause.type() != Event::Tau)
     {
-      labels.prepend(proc->cause->displayText());
+      labels.prepend(proc->cause.displayText());
     }
     proc = proc->parent;
   }

@@ -4,7 +4,7 @@
 #include "programstate.h"
 
 ProcessItem::ProcessItem(const Process * process, const ProcessItem * parent,
-  const Event * cause, int index) : process(process), parent(parent),
+  const Event & cause, int index) : process(process), parent(parent),
   cause(cause), index(index)
 {
   _next = new QList<ProcessItem *>();
@@ -31,19 +31,19 @@ int ProcessItem::count() const
 
 bool ProcessItem::canFetchMore() const
 {
-  return process->transitions()->count() > count();
+  return process->transitions().count() > count();
 }
 
 void ProcessItem::fetchMore(int toFetch)
 {
   int got = count();
 
-  QList<QPair<Event *, Process *> *> * transitions = process->transitions();
-  QPair<Event *, Process *> * pair;
+  QList<QPair<Event, Process *> > transitions = process->transitions();
+  QPair<Event, Process *> pair;
   for (int i = got; i < got + toFetch; i++)
   {
-    pair = transitions->at(i);
-    _next->append(new ProcessItem(pair->second, this, pair->first, i));
+    pair = transitions.at(i);
+    _next->append(new ProcessItem(pair.second, this, pair.first, i));
   }
 }
 
@@ -123,7 +123,7 @@ QVariant ProcessModel::data(const QModelIndex & index, int role) const
   }
 
   const ProcessItem * p = static_cast<ProcessItem *>(index.internalPointer());
-  QString display = QString("%1: %2").arg(p->cause->displayText(), p->process->displayText());
+  QString display = QString("%1: %2").arg(p->cause.displayText(), p->process->displayText());
   if (role == Qt::DisplayRole && display.length() > 100)
   {
     display.truncate(100);
@@ -160,7 +160,7 @@ void ProcessModel::fetchMore(const QModelIndex & parent)
   }
 
   int got = parentItem->count();
-  int toFetch = qMin(10, parentItem->process->transitions()->count() - got);
+  int toFetch = qMin(10, parentItem->process->transitions().count() - got);
   beginInsertRows(parent, got, got + toFetch - 1);
   parentItem->fetchMore(toFetch);
   endInsertRows();
@@ -177,5 +177,5 @@ bool ProcessModel::hasChildren(const QModelIndex & parent) const
   {
     parentItem = static_cast<ProcessItem *>(parent.internalPointer());
   }
-  return parentItem->process->transitions()->count();
+  return parentItem->process->transitions().count();
 }

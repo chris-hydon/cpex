@@ -8,7 +8,7 @@ class ProcessItem
 {
 public:
   ProcessItem(const Process * process, const ProcessItem * parent = NULL,
-    const Event * cause = NULL, int index = 0);
+    const Event & cause = Event(), int index = 0);
   ~ProcessItem();
   ProcessItem * next(int index) const;
   int count() const;
@@ -17,7 +17,7 @@ public:
 
   const Process * process;
   const ProcessItem * parent;
-  const Event * cause;
+  const Event cause;
   const int index;
 
 private:

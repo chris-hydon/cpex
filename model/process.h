@@ -16,7 +16,7 @@ public:
   Process(void * hsPtr);
   Process(const Process & other);
   ~Process();
-  QList<QPair<Event *, Process *> *> * transitions() const;
+  QList<QPair<Event, Process *> > transitions() const;
   const Process * findEqual(const Process * to) const;
   QString displayText() const;
   bool operator ==(const Process & other) const;

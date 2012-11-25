@@ -9,34 +9,27 @@
 class ProcessData : public QSharedData
 {
 public:
-  ProcessData(void * hsPtr) : hsPtr(hsPtr), isRoot(true), next(NULL)
+  ProcessData(void * hsPtr) : hsPtr(hsPtr), isRoot(true), loaded(false)
   {
     states = new QHash<QString, const Process *>;
   }
 
   ProcessData(void * hsPtr, QHash<QString, const Process *> * states) : hsPtr(hsPtr),
-    isRoot(false), next(NULL), states(states)
+    isRoot(false), loaded(false), states(states)
   {
   }
 
   ProcessData(const ProcessData & other) : QSharedData(other), hsPtr(other.hsPtr),
-    isRoot(false), next(other.next), displayText(other.displayText)
+    isRoot(false), loaded(true), next(other.next), displayText(other.displayText)
   {
   }
 
   ~ProcessData()
   {
-    QPair<Event *, Process *> * deleting;
-    if (next != NULL)
+    QPair<Event, Process *> deleting;
+    while (!next.isEmpty())
     {
-      while (!next->isEmpty())
-      {
-        deleting = next->takeFirst();
-        delete deleting->first;
-        delete deleting->second;
-        delete deleting;
-      }
-      delete next;
+      delete next.takeFirst().second;
     }
 
     if (isRoot)
@@ -49,7 +42,8 @@ public:
 
   void * hsPtr;
   const bool isRoot;
-  mutable QList<QPair<Event *, Process *> *> * next;
+  mutable bool loaded;
+  mutable QList<QPair<Event, Process *> > next;
   mutable QString displayText;
   mutable QHash<QString, const Process *> * states;
 };
@@ -72,33 +66,33 @@ Process::~Process()
 {
 }
 
-QList<QPair<Event *, Process *> *> * Process::transitions() const
+QList<QPair<Event, Process *> > Process::transitions() const
 {
-  if (_d->next == NULL)
+  if (!_d->loaded)
   {
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
     cpex_transitions(_d->hsPtr, &hsEvents, &hsProcs, &transitionCount);
 
-    _d->next = new QList<QPair<Event *, Process *> *>();
     for (quint32 i = 0; i < transitionCount; i++)
     {
-      Event * e = new Event(hsEvents[i]);
+      Event e(hsEvents[i]);
       Process * p = new Process(hsProcs[i], this);
       const Process * pExists = findEqual(p);
       if (pExists != NULL)
       {
         p->_d = pExists->_d;
       }
-      _d->next->append(new QPair<Event *, Process *>(e, p));
+      _d->next.append(QPair<Event, Process *>(e, p));
     }
 
     free(hsProcs);
     free(hsEvents);
+    _d->loaded = true;
   }
 
-  return _d->next;
+  return QList<QPair<Event, Process *> >(_d->next);
 }
 
 const Process * Process::findEqual(const Process *) const

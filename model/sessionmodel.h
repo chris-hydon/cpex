@@ -23,7 +23,7 @@ public slots:
   void itemActivated(const QModelIndex & index);
 
 private:
-  QList<const SessionItem *> * _sessions;
+  QList<const SessionItem *> _sessions;
 };
 
 #endif // SESSIONMODEL_H

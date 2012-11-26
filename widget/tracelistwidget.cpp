@@ -5,7 +5,7 @@
 
 TraceListWidget::TraceListWidget(QWidget * parent) : QListView(parent)
 {
-  _model = new QStringListModel();
+  _model = new QStringListModel(this);
   setModel(_model);
 }
 

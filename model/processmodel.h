@@ -7,7 +7,7 @@
 class ProcessItem
 {
 public:
-  ProcessItem(const Process * process, const ProcessItem * parent = NULL,
+  ProcessItem(const Process & process, const ProcessItem * parent = NULL,
     const Event & cause = Event(), int index = 0);
   ~ProcessItem();
   ProcessItem * next(int index) const;
@@ -15,19 +15,19 @@ public:
   bool canFetchMore() const;
   void fetchMore(int toFetch);
 
-  const Process * process;
+  const Process process;
   const ProcessItem * parent;
   const Event cause;
   const int index;
 
 private:
-  QList<ProcessItem *> * _next;
+  QList<ProcessItem *> _next;
 };
 
 class ProcessModel : public QAbstractItemModel
 {
 public:
-  ProcessModel(const Process * rootProcess, QObject * parent = 0);
+  ProcessModel(const Process & rootProcess, QObject * parent = 0);
   ~ProcessModel();
   QModelIndex index(int row, int column, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex & index) const;

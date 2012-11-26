@@ -13,16 +13,19 @@ class ProcessData;
 class Process
 {
 public:
+  Process();
   Process(void * hsPtr);
   Process(const Process & other);
   ~Process();
-  QList<QPair<Event, Process *> > transitions() const;
-  const Process * findEqual(const Process * to) const;
+  QList<QPair<Event, Process> > transitions() const;
+  Process findEqual(const Process & to) const;
   QString displayText() const;
+  bool isValid() const;
   bool operator ==(const Process & other) const;
+  const Process & operator =(const Process & other);
 
 private:
-  Process(void * hsPtr, const Process * parent);
+  Process(void * hsPtr, const Process & parent);
   QExplicitlySharedDataPointer<ProcessData> _d;
 };
 

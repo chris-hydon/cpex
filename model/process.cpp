@@ -11,10 +11,10 @@ class ProcessData : public QSharedData
 public:
   ProcessData(void * hsPtr) : hsPtr(hsPtr), isRoot(true), loaded(false)
   {
-    states = new QHash<QString, const Process *>;
+    states = new QHash<QString, Process>;
   }
 
-  ProcessData(void * hsPtr, QHash<QString, const Process *> * states) : hsPtr(hsPtr),
+  ProcessData(void * hsPtr, QHash<QString, Process> * states) : hsPtr(hsPtr),
     isRoot(false), loaded(false), states(states)
   {
   }
@@ -26,12 +26,6 @@ public:
 
   ~ProcessData()
   {
-    QPair<Event, Process *> deleting;
-    while (!next.isEmpty())
-    {
-      delete next.takeFirst().second;
-    }
-
     if (isRoot)
     {
       delete states;
@@ -43,10 +37,14 @@ public:
   void * hsPtr;
   const bool isRoot;
   mutable bool loaded;
-  mutable QList<QPair<Event, Process *> > next;
+  mutable QList<QPair<Event, Process> > next;
   mutable QString displayText;
-  mutable QHash<QString, const Process *> * states;
+  mutable QHash<QString, Process> * states;
 };
+
+Process::Process()
+{
+}
 
 Process::Process(const Process & other) : _d(other._d)
 {
@@ -57,16 +55,16 @@ Process::Process(void * hsPtr)
   _d = new ProcessData(hsPtr);
 }
 
-Process::Process(void * hsPtr, const Process * parent)
+Process::Process(void * hsPtr, const Process & parent)
 {
-  _d = new ProcessData(hsPtr, parent->_d->states);
+  _d = new ProcessData(hsPtr, parent._d->states);
 }
 
 Process::~Process()
 {
 }
 
-QList<QPair<Event, Process *> > Process::transitions() const
+QList<QPair<Event, Process> > Process::transitions() const
 {
   if (!_d->loaded)
   {
@@ -78,13 +76,13 @@ QList<QPair<Event, Process *> > Process::transitions() const
     for (quint32 i = 0; i < transitionCount; i++)
     {
       Event e(hsEvents[i]);
-      Process * p = new Process(hsProcs[i], this);
-      const Process * pExists = findEqual(p);
-      if (pExists != NULL)
+      Process p(hsProcs[i], *this);
+      Process pExists = findEqual(p);
+      if (pExists.isValid())
       {
-        p->_d = pExists->_d;
+        p = pExists;
       }
-      _d->next.append(QPair<Event, Process *>(e, p));
+      _d->next.append(QPair<Event, Process>(e, p));
     }
 
     free(hsProcs);
@@ -92,15 +90,15 @@ QList<QPair<Event, Process *> > Process::transitions() const
     _d->loaded = true;
   }
 
-  return QList<QPair<Event, Process *> >(_d->next);
+  return _d->next;
 }
 
-const Process * Process::findEqual(const Process *) const
+Process Process::findEqual(const Process &) const
 {
   // Removed - should be able to do better, right now this is slow for states
   // represented by large strings and might not necessarily match identical
   // states (since most operators are associative).
-  return NULL;
+  return Process();
 /*
   // Look for "to" in the list of states in this machine.
   const Process * found = _d->states->value(to->displayText(), NULL);
@@ -124,8 +122,19 @@ QString Process::displayText() const
   return _d->displayText;
 }
 
+bool Process::isValid() const
+{
+  return _d;
+}
+
 bool Process::operator ==(const Process & other) const
 {
   // Equate two processes if they use the same data.
   return _d == other._d;
+}
+
+const Process & Process::operator =(const Process & other)
+{
+  _d = other._d;
+  return *this;
 }

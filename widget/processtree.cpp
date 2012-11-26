@@ -12,9 +12,9 @@ ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
 
 void ProcessTree::loadInitialState()
 {
-  Process * p = ProgramState::currentSession()->compileExpression(
+  Process p = ProgramState::currentSession()->compileExpression(
     MainWindow::getUi()->qleExpression->text());
-  if (p == NULL)
+  if (!p.isValid())
   {
     MainWindow::getUi()->qsbStatus->showMessage(
       tr("Invalid expression for the current file."), 5000);

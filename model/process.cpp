@@ -1,45 +1,41 @@
 #include "process.h"
 
 #include "haskell/Cpex/Foreign_stub.h"
+#include "model/ptypes.h"
+#include "cspmsession.h"
+
 #include <HsFFI.h>
 #include <QHash>
 #include <QRegExp>
+#include <QSet>
 #include <QSharedData>
 
 class ProcessData : public QSharedData
 {
 public:
-  ProcessData(void * hsPtr) : hsPtr(hsPtr), isRoot(true), loaded(false)
-  {
-    states = new QHash<QString, Process>;
-  }
-
-  ProcessData(void * hsPtr, QHash<QString, Process> * states) : hsPtr(hsPtr),
-    isRoot(false), loaded(false), states(states)
+  ProcessData(void * hsPtr, const CSPMSession * session) : session(session),
+    hsPtr(hsPtr), loaded(false)
   {
   }
 
-  ProcessData(const ProcessData & other) : QSharedData(other), hsPtr(other.hsPtr),
-    isRoot(false), loaded(true), next(other.next), displayText(other.displayText)
+  ProcessData(const ProcessData & other) : QSharedData(other),
+    session(other.session), hsPtr(other.hsPtr), backend(other.backend),
+    loaded(true), next(other.next), displayText(other.displayText)
   {
   }
 
   ~ProcessData()
   {
-    if (isRoot)
-    {
-      delete states;
-    }
-
+    delete backend;
     hs_free_stable_ptr(hsPtr);
   }
 
+  const CSPMSession * session;
   void * hsPtr;
-  const bool isRoot;
+  PBase * backend;
   mutable bool loaded;
   mutable QList<QPair<Event, Process> > next;
   mutable QString displayText;
-  mutable QHash<QString, Process> * states;
 };
 
 Process::Process()
@@ -50,14 +46,82 @@ Process::Process(const Process & other) : _d(other._d)
 {
 }
 
-Process::Process(void * hsPtr)
+Process::Process(void * hsPtr, const CSPMSession * session)
 {
-  _d = new ProcessData(hsPtr);
+  _d = new ProcessData(hsPtr, session);
+  unsigned char type = 0;
+  cpex_process_operator(hsPtr, &type);
+
+  // Choose which backend class to use - this will allow examination of the
+  // structure of the processes.
+  switch(type)
+  {
+    case 0:
+      _d->backend = new PAlphaParallel(hsPtr, session);
+      break;
+    case 1:
+      _d->backend = new PException(hsPtr, session);
+      break;
+    case 2:
+      _d->backend = new PExternalChoice(hsPtr, session);
+      break;
+    case 3:
+      _d->backend = new PGenParallel(hsPtr, session);
+      break;
+    case 4:
+      _d->backend = new PHide(hsPtr, session);
+      break;
+    case 5:
+      _d->backend = new PInternalChoice(hsPtr, session);
+      break;
+    case 6:
+      _d->backend = new PInterrupt(hsPtr, session);
+      break;
+    case 7:
+      _d->backend = new PInterleave(hsPtr, session);
+      break;
+    case 8:
+      _d->backend = new PLinkParallel(hsPtr, session);
+      break;
+    case 9:
+      _d->backend = new POperator(hsPtr, session);
+      break;
+    case 10:
+      _d->backend = new PPrefix(hsPtr, session);
+      break;
+    case 11:
+      _d->backend = new PRename(hsPtr, session);
+      break;
+    case 12:
+      _d->backend = new PSequentialComp(hsPtr, session);
+      break;
+    case 13:
+      _d->backend = new PSlidingChoice(hsPtr, session);
+      break;
+    case 14:
+      _d->backend = new PProcCall(hsPtr, session);
+      break;
+  }
 }
 
-Process::Process(void * hsPtr, const Process & parent)
+Process Process::create(void * hsPtr, const CSPMSession * session)
 {
-  _d = new ProcessData(hsPtr, parent._d->states);
+  // Create a new one, then see if it already exists. Behind the scenes, this
+  // ends up building the complete process.
+  Process p(hsPtr, session);
+  QSet<Process>::const_iterator it = session->procs()->constFind(p);
+  if (it == session->procs()->constEnd())
+  {
+    // New process: add it to the session and return it.
+    session->procs()->insert(p);
+    return p;
+  }
+  else
+  {
+    // Already exists: return the existing version and let our new one destroy
+    // itself by going out of scope.
+    return *it;
+  }
 }
 
 Process::~Process()
@@ -76,12 +140,7 @@ QList<QPair<Event, Process> > Process::transitions() const
     for (quint32 i = 0; i < transitionCount; i++)
     {
       Event e(hsEvents[i]);
-      Process p(hsProcs[i], *this);
-      Process pExists = findEqual(p);
-      if (pExists.isValid())
-      {
-        p = pExists;
-      }
+      Process p = Process::create(hsProcs[i], _d->session);
       _d->next.append(QPair<Event, Process>(e, p));
     }
 
@@ -91,23 +150,6 @@ QList<QPair<Event, Process> > Process::transitions() const
   }
 
   return _d->next;
-}
-
-Process Process::findEqual(const Process &) const
-{
-  // Removed - should be able to do better, right now this is slow for states
-  // represented by large strings and might not necessarily match identical
-  // states (since most operators are associative).
-  return Process();
-/*
-  // Look for "to" in the list of states in this machine.
-  const Process * found = _d->states->value(to->displayText(), NULL);
-  if (found == NULL)
-  {
-    _d->states->insert(to->displayText(), to);
-  }
-  return found;
-*/
 }
 
 QString Process::displayText() const
@@ -129,8 +171,13 @@ bool Process::isValid() const
 
 bool Process::operator ==(const Process & other) const
 {
-  // Equate two processes if they use the same data.
-  return _d == other._d;
+  // Equate two processes if they are the same on the backend.
+  return _d->backend == other._d->backend;
+}
+
+uint Process::hash() const
+{
+  return _d->backend->hash();
 }
 
 const Process & Process::operator =(const Process & other)

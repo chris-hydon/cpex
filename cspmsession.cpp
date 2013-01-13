@@ -4,12 +4,15 @@
 #include "haskell/Cpex/Foreign_stub.h"
 #include <QStringList>
 
-CSPMSession::CSPMSession()
+CSPMSession::CSPMSession() : _procs(new QSet<Process>)
 {
   _hsSession = cspm_session_create();
   _file = NULL;
   _procCallNames = QStringList();
   _procCallNamesLoaded = true;
+
+  // This is likely to get very big.
+  _procs->reserve(20000);
 }
 
 CSPMSession::~CSPMSession()
@@ -42,7 +45,7 @@ Process CSPMSession::compileExpression(const QString & expression) const
 {
   void * proc = NULL;
   int r = cpex_expression_value(_hsSession, (void *) expression.toStdWString().c_str(), &proc);
-  return (r ? Process(proc) : Process());
+  return (r ? Process::create(proc, this) : Process());
 }
 
 QStringList CSPMSession::procCallNames() const
@@ -84,6 +87,11 @@ QStringList CSPMSession::procCallNames() const
   }
 
   return _procCallNames;
+}
+
+QSet<Process> * CSPMSession::procs() const
+{
+  return _procs;
 }
 
 bool CSPMSession::operator ==(const CSPMSession & other)

@@ -2,6 +2,7 @@
 #define CSPMSESSION_H
 
 #include "model/process.h"
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -14,12 +15,14 @@ public:
   int loadFile(const QString & fileName);
   Process compileExpression(const QString & expression) const;
   QStringList procCallNames() const;
+  QSet<Process> * procs() const;
   bool operator ==(const CSPMSession & other);
 
 private:
   void * _hsSession;
   void * _file;
   QString _fileName;
+  QSet<Process> * const _procs;
   mutable QStringList _procCallNames;
   mutable bool _procCallNamesLoaded;
 };

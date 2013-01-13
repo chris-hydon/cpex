@@ -2,6 +2,7 @@
 #define EVENT_H
 
 #include <QExplicitlySharedDataPointer>
+#include <QHash>
 #include <QString>
 
 class EventData;
@@ -28,5 +29,10 @@ private:
 
   void _lazyLoad() const;
 };
+
+inline uint qHash(const Event & e)
+{
+  return qHash(e.displayText());
+}
 
 #endif // EVENT_H

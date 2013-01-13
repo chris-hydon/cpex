@@ -35,7 +35,8 @@ SOURCES += \
     widget/tracelistwidget.cpp \
     widget/sessiontree.cpp \
     model/sessionmodel.cpp \
-    programstate.cpp
+    programstate.cpp \
+    model/ptypes.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -47,7 +48,8 @@ HEADERS += \
     widget/tracelistwidget.h \
     widget/sessiontree.h \
     model/sessionmodel.h \
-    programstate.h
+    programstate.h \
+    model/ptypes.h
 
 FORMS += \
     mainwindow.ui

@@ -94,6 +94,11 @@ QSet<Process> * CSPMSession::procs() const
   return _procs;
 }
 
+void * CSPMSession::getHsPtr() const
+{
+  return _hsSession;
+}
+
 bool CSPMSession::operator ==(const CSPMSession & other)
 {
   // Two sessions are equal if they point to the same Haskell session.

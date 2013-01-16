@@ -16,6 +16,7 @@ public:
   Process compileExpression(const QString & expression) const;
   QStringList procCallNames() const;
   QSet<Process> * procs() const;
+  void * getHsPtr() const;
   bool operator ==(const CSPMSession & other);
 
 private:

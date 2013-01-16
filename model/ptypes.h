@@ -55,9 +55,7 @@ public:
   // Each implementation must call other.isEqual(this) to complete the visitor loop.
   virtual bool operator ==(const PBase & other) const = 0;
 
-  // Each implementation also needs to implement a hash function and a display
-  // function.
-  virtual uint hash() const { return 0; }
+  // Each implementation also needs to implement a display function.
   virtual QString display(int) { return QString(); }
 
 // Protected methods in PBase can be exposed in the subclasses that require them

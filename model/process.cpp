@@ -157,7 +157,7 @@ QString Process::displayText() const
   if (_d->displayText == QString())
   {
     wchar_t * str = NULL;
-    cpex_process_string(_d->hsPtr, &str);
+    cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, &str);
     _d->displayText = QString::fromWCharArray(str).replace(QRegExp("\\s+"), " ");
     free(str);
   }
@@ -177,7 +177,7 @@ bool Process::operator ==(const Process & other) const
 
 uint Process::hash() const
 {
-  return _d->backend->hash();
+  return cpex_process_hash(_d->hsPtr);
 }
 
 const Process & Process::operator =(const Process & other)

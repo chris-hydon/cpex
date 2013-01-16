@@ -6,6 +6,7 @@ import Cpex.Transitions
 import CSPM
 import CSPM.Foreign
 import CSPM.Prelude
+import Data.Hashable
 import Data.IORef
 import Data.Maybe
 import Foreign.C.String
@@ -16,6 +17,7 @@ import Foreign.Ptr
 import Foreign.StablePtr
 import Foreign.Storable
 import Util.PrettyPrint
+import qualified Util.MonadicPrettyPrint as M
 
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
@@ -30,9 +32,11 @@ foreign export ccall
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 foreign export ccall
-  cpex_process_string :: ProcPtr -> Ptr CWString -> IO ()
+  cpex_process_string :: SessionPtr -> ProcPtr -> Ptr CWString -> IO CUInt
 foreign export ccall
   cpex_process_equal :: ProcPtr -> ProcPtr -> IO Bool
+foreign export ccall
+  cpex_process_hash :: ProcPtr -> IO CUInt
 foreign export ccall
   cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
 foreign export ccall
@@ -88,6 +92,16 @@ operatorNum (PBinaryOp PSequentialComp _ _) = 12
 operatorNum (PBinaryOp PSlidingChoice _ _) = 13
 operatorNum (PProcCall _ _) = 14
 
+-- Helper functions for reading from and writing to stable pointers.
+input :: StablePtr (IORef a) -> IO a
+input i = deRefStablePtr i >>= readIORef
+
+output :: a -> Ptr (StablePtr (IORef a)) -> IO ()
+output x o = newIORef x >>= newStablePtr >>= poke o
+
+outputArray :: [a] -> Ptr (Ptr (StablePtr (IORef a))) -> IO ()
+outputArray xs o = mapM newIORef xs >>= mapM newStablePtr >>= newArray >>= poke o
+
 -- Input: Stable pointer to a process.
 -- Output: Array of events offered by the process (may include duplicates).
 --         Array of processes resulting from applying the respective event.
@@ -95,17 +109,10 @@ operatorNum (PProcCall _ _) = 14
 cpex_transitions :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr ProcPtr) ->
   Ptr CUInt -> IO ()
 cpex_transitions inProc outEvents outProcs outCount = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let (es, pns) = unzip $ map simplify $ transitions p
-  eRefs <- mapM newIORef es
-  pnRefs <- mapM newIORef pns
-  ePtrs <- mapM newStablePtr eRefs
-  pnPtrs <- mapM newStablePtr pnRefs
-  eArray <- newArray ePtrs
-  pnArray <- newArray pnPtrs
-  poke outEvents eArray
-  poke outProcs pnArray
+  outputArray es outEvents
+  outputArray pns outProcs
   liftIO $ poke outCount $ fromIntegral $ length es
 
 -- Input: Event.
@@ -113,8 +120,7 @@ cpex_transitions inProc outEvents outProcs outCount = do
 --         The type of the event (user defined, Tau or Tick).
 cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 cpex_event_string inEvent outName outType = do
-  eRef <- deRefStablePtr inEvent
-  e <- readIORef eRef
+  e <- input inEvent
   name <- (newCWString . show . prettyPrint) e
   poke outType $ fromIntegral $ etype e
   poke outName name
@@ -124,29 +130,31 @@ cpex_event_string inEvent outName outType = do
 
 -- Input: Process.
 -- Output: A string representation of that process, suitable for output.
-cpex_process_string :: ProcPtr -> Ptr CWString -> IO ()
-cpex_process_string inProc outString = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
-  name <- (newCWString . show . prettyPrint) p
-  poke outString name
+cpex_process_string :: SessionPtr -> ProcPtr -> Ptr CWString -> IO CUInt
+cpex_process_string sessPtr inProc outString = runSession sessPtr $ do
+  doc <- liftIO (input inProc) >>= M.prettyPrintBrief
+  liftIO $ (newCWString . show) doc >>= poke outString
 
 -- Input: Two processes.
 -- Returns: True if the input processes are equal, false if not.
 cpex_process_equal :: ProcPtr -> ProcPtr -> IO Bool
 cpex_process_equal inProc1 inProc2 = do
-  p1Ref <- deRefStablePtr inProc1
-  p2Ref <- deRefStablePtr inProc2
-  p1 <- readIORef p1Ref
-  p2 <- readIORef p2Ref
+  p1 <- input inProc1
+  p2 <- input inProc2
   return (p1 == p2)
+
+-- Input: A process.
+-- Returns: A hash of that process.
+cpex_process_hash :: ProcPtr -> IO CUInt
+cpex_process_hash inProc = do
+  p <- input inProc
+  return $ fromIntegral $ hash p
 
 -- Input: Process.
 -- Output: A number representing the operator used.
 cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
 cpex_process_operator inProc outOp = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   poke outOp $ fromIntegral $ operatorNum p
 
 -- Input: Process.
@@ -155,14 +163,11 @@ cpex_process_operator inProc outOp = do
 -- Error: If the process is of the wrong type.
 cpex_op_event :: ProcPtr -> Ptr EventPtr -> IO CUInt
 cpex_op_event inProc outEvent = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let e = get_event p
   case e of
     Just ev -> liftIO $ do
-      eRef <- newIORef ev
-      ePtr <- newStablePtr eRef
-      poke outEvent ePtr
+      output ev outEvent
       return 1
     Nothing -> return 0
   where get_event (PUnaryOp (PPrefix ev) _) = Just ev
@@ -175,15 +180,11 @@ cpex_op_event inProc outEvent = do
 -- Error: If the process is of the wrong type.
 cpex_op_events :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
 cpex_op_events inProc outEvents outSize = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let es = get_events p
   case es of
     Just es -> liftIO $ do
-      eRefs <- mapM newIORef $ F.toList es
-      ePtrs <- mapM newStablePtr eRefs
-      arrayPtr <- newArray ePtrs
-      poke outEvents arrayPtr
+      outputArray (F.toList es) outEvents
       poke outSize $ fromIntegral $ S.length es
       return 1
     Nothing -> return 0
@@ -200,20 +201,13 @@ cpex_op_events inProc outEvents outSize = do
 cpex_op_event_map :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr EventPtr) ->
   Ptr CUInt -> IO CUInt
 cpex_op_event_map inProc outLeft outRight outSize = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let em = get_event_map p
   case em of
     Just em -> liftIO $ do
       let eml = F.toList em
-      eLeftRefs <- mapM (newIORef . fst) $ eml
-      eRightRefs <- mapM (newIORef . snd) $ eml
-      eLeftPtrs <- mapM newStablePtr eLeftRefs
-      eRightPtrs <- mapM newStablePtr eRightRefs
-      leftPtr <- newArray eLeftPtrs
-      rightPtr <- newArray eRightPtrs
-      poke outLeft leftPtr
-      poke outRight rightPtr
+      outputArray (map fst eml) outLeft
+      outputArray (map snd eml) outRight
       poke outSize $ fromIntegral $ S.length em
       return 1
     Nothing -> return 0
@@ -230,16 +224,15 @@ cpex_op_event_map inProc outLeft outRight outSize = do
 cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) -> Ptr (Ptr CUInt) ->
   IO CUInt
 cpex_op_alphabets inProc outAlphas outSizes = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- deRefStablePtr inProc >>= readIORef
   let as = get_alphas p
   case as of
     Just as -> liftIO $ do
-      aRefs <- mapM ((mapM newIORef) . F.toList) $ F.toList as
-      aPtrs <- mapM (mapM newStablePtr) aRefs
-      arrayPtrs <- mapM newArray aPtrs
-      arrayPtr <- newArray arrayPtrs
-      poke outAlphas arrayPtr
+      mapM ((mapM newIORef) . F.toList) (F.toList as)
+        >>= mapM (mapM newStablePtr)
+        >>= mapM newArray
+        >>= newArray
+        >>= poke outAlphas
       sizesPtr <- newArray $ (map (fromIntegral . S.length) . F.toList) as
       poke outSizes sizesPtr
       return 1
@@ -252,14 +245,11 @@ cpex_op_alphabets inProc outAlphas outSizes = do
 -- Error: If the process is not PUnaryOp.
 cpex_op_process :: ProcPtr -> Ptr ProcPtr -> IO CUInt
 cpex_op_process inProc outProc = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let pn = next p
   case pn of
     Just pn -> liftIO $ do
-      pRef <- newIORef pn
-      pPtr <- newStablePtr pRef
-      poke outProc pPtr
+      output pn outProc
       return 1
     Nothing -> return 0
   where next (PUnaryOp _ pn) = Just pn
@@ -270,17 +260,12 @@ cpex_op_process inProc outProc = do
 -- Error: If the process is not PBinaryOp.
 cpex_op_process2 :: ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
 cpex_op_process2 inProc outLeft outRight = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let pn = next p
   case pn of
     Just (p1, p2) -> liftIO $ do
-      p1Ref <- newIORef p1
-      p1Ptr <- newStablePtr p1Ref
-      p2Ref <- newIORef p2
-      p2Ptr <- newStablePtr p2Ref
-      poke outLeft p1Ptr
-      poke outRight p2Ptr
+      output p1 outLeft
+      output p2 outRight
       return 1
     Nothing -> return 0
   where next (PBinaryOp _ p1 p2) = Just (p1, p2)
@@ -292,15 +277,11 @@ cpex_op_process2 inProc outLeft outRight = do
 -- Error: If the process is not POp.
 cpex_op_processes :: ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
 cpex_op_processes inProc outProcs outSize = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let pn = next p
   case pn of
     Just pn -> liftIO $ do
-      pRef <- mapM newIORef (F.toList pn)
-      pPtr <- mapM newStablePtr pRef
-      arrayPtr <- newArray pPtr
-      poke outProcs arrayPtr
+      outputArray (F.toList pn) outProcs
       poke outSize $ fromIntegral $ S.length pn
       return 1
     Nothing -> return 0
@@ -313,14 +294,11 @@ cpex_op_processes inProc outProcs outSize = do
 -- Error: If the process is not PProcCall.
 cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
 cpex_op_proccall inProc outProc outName = do
-  pRef <- deRefStablePtr inProc
-  p <- readIORef pRef
+  p <- input inProc
   let pn = next p
   case pn of
     Just (n, pn) -> liftIO $ do
-      pRef <- newIORef pn
-      pPtr <- newStablePtr pRef
-      poke outProc pPtr
+      output pn outProc
       name <- (newCWString . show . prettyPrint) n
       poke outName name
       return 1
@@ -360,6 +338,4 @@ cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
   VProc expressionValue <- stringToValue TProc name
-  procRef <- liftIO $ newIORef expressionValue
-  procPtr <- liftIO $ newStablePtr procRef
-  liftIO $ poke outProc procPtr
+  liftIO $ output expressionValue outProc

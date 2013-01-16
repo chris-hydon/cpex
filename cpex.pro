@@ -7,6 +7,7 @@ HS_DEPS += \
     containers \
     deepseq \
     ghc-prim \
+    hashable \
     integer-gmp \
     libcspm \
     pretty \

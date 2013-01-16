@@ -121,11 +121,11 @@ QVariant ProcessModel::data(const QModelIndex & index, int role) const
 
   const ProcessItem * p = static_cast<ProcessItem *>(index.internalPointer());
   QString display = QString("%1: %2").arg(p->cause.displayText(), p->process.displayText());
-  if (role == Qt::DisplayRole && display.length() > 100)
+/*  if (role == Qt::DisplayRole && display.length() > 100)
   {
     display.truncate(100);
     display += "...";
-  }
+  }*/
   return display;
 }
 

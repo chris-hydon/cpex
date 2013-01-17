@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include "cspmsession.h"
 #include "programstate.h"
+#include "delegate/processitemdelegate.h"
 
 MainWindow * MainWindow::window = NULL;
 
@@ -44,6 +45,9 @@ MainWindow::MainWindow(QWidget * parent) :
     ui->qtvExplorer, SIGNAL(customContextMenuRequested(const QPoint &)),
     ui->qtvExplorer, SLOT(showContextMenu(const QPoint &))
   );
+
+  // Item delegate for explorer.
+  ui->qtvExplorer->setItemDelegate(new ProcessItemDelegate(ui->qtvExplorer));
 }
 
 MainWindow::~MainWindow()

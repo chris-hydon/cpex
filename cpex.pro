@@ -37,7 +37,8 @@ SOURCES += \
     widget/sessiontree.cpp \
     model/sessionmodel.cpp \
     programstate.cpp \
-    model/ptypes.cpp
+    model/ptypes.cpp \
+    delegate/processitemdelegate.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -50,7 +51,8 @@ HEADERS += \
     widget/sessiontree.h \
     model/sessionmodel.h \
     programstate.h \
-    model/ptypes.h
+    model/ptypes.h \
+    delegate/processitemdelegate.h
 
 FORMS += \
     mainwindow.ui

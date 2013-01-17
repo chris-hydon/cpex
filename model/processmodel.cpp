@@ -9,6 +9,11 @@ ProcessItem::ProcessItem(const Process & process, const ProcessItem * parent,
 {
 }
 
+ProcessItem::ProcessItem(const Process & process) : parent(NULL), index(0)
+{
+  _next.append(new ProcessItem(process, this, Event(), 0));
+}
+
 ProcessItem::~ProcessItem()
 {
   while (!_next.isEmpty())
@@ -29,7 +34,7 @@ int ProcessItem::count() const
 
 bool ProcessItem::canFetchMore() const
 {
-  return process.transitions().count() > count();
+  return process.isValid() && process.transitions().count() > count();
 }
 
 void ProcessItem::fetchMore(int toFetch)
@@ -120,9 +125,15 @@ QVariant ProcessModel::data(const QModelIndex & index, int role) const
   }
 
   const ProcessItem * p = static_cast<ProcessItem *>(index.internalPointer());
-  QString display = QString("%1: %2").arg(p->cause.displayText(), p->process.displayText());
-
-  return display;
+  // Top level process.
+  if (p->cause == Event())
+  {
+    return p->process.displayText();
+  }
+  else
+  {
+    return QString("%1: %2").arg(p->cause.displayText(), p->process.displayText());
+  }
 }
 
 bool ProcessModel::canFetchMore(const QModelIndex & parent) const
@@ -161,14 +172,12 @@ void ProcessModel::fetchMore(const QModelIndex & parent)
 
 bool ProcessModel::hasChildren(const QModelIndex & parent) const
 {
-  const ProcessItem * parentItem;
   if (!parent.isValid())
   {
-    parentItem = _rootProcess;
+    return true;
   }
   else
   {
-    parentItem = static_cast<ProcessItem *>(parent.internalPointer());
+    return static_cast<ProcessItem *>(parent.internalPointer())->process.transitions().count();
   }
-  return parentItem->process.transitions().count();
 }

@@ -38,6 +38,9 @@ void ProcessTree::loadInitialState()
   header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
   header()->setResizeMode(0, QHeaderView::ResizeToContents);
   header()->setStretchLastSection(false);
+
+  // Expand the root.
+  expand(_model->index(0, 0, rootIndex()));
 }
 
 void ProcessTree::showContextMenu(const QPoint & pos)

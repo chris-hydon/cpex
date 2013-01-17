@@ -7,8 +7,11 @@
 class ProcessItem
 {
 public:
-  ProcessItem(const Process & process, const ProcessItem * parent = NULL,
-    const Event & cause = Event(), int index = 0);
+  ProcessItem(const Process & process, const ProcessItem * parent,
+    const Event & cause, int index);
+  // Overloaded constructor - intended for use only by the root, this constructs
+  // two ProcessItems, one the parent of the next, so that the root may be visible.
+  ProcessItem(const Process & process);
   ~ProcessItem();
   ProcessItem * next(int index) const;
   int count() const;

@@ -7,7 +7,6 @@ import CSPM
 import CSPM.Foreign
 import CSPM.Prelude
 import Data.Hashable
-import Data.IORef
 import Data.Maybe
 import Foreign.C.String
 import Foreign.C.Types
@@ -22,8 +21,8 @@ import qualified Util.MonadicPrettyPrint as M
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
 
-type ProcPtr = StablePtr (IORef UProc)
-type EventPtr = StablePtr (IORef Event)
+type ProcPtr = StablePtr UProc
+type EventPtr = StablePtr Event
 
 -- Foreign exports: Each Ptr argument (not StablePtr) is intended for output.
 foreign export ccall
@@ -93,14 +92,14 @@ operatorNum (PBinaryOp PSlidingChoice _ _) = 13
 operatorNum (PProcCall _ _) = 14
 
 -- Helper functions for reading from and writing to stable pointers.
-input :: StablePtr (IORef a) -> IO a
-input i = deRefStablePtr i >>= readIORef
+input :: StablePtr a -> IO a
+input = deRefStablePtr
 
-output :: a -> Ptr (StablePtr (IORef a)) -> IO ()
-output x o = newIORef x >>= newStablePtr >>= poke o
+output :: a -> Ptr (StablePtr a) -> IO ()
+output x o = newStablePtr x >>= poke o
 
-outputArray :: [a] -> Ptr (Ptr (StablePtr (IORef a))) -> IO ()
-outputArray xs o = mapM newIORef xs >>= mapM newStablePtr >>= newArray >>= poke o
+outputArray :: [a] -> Ptr (Ptr (StablePtr a)) -> IO ()
+outputArray xs o = mapM newStablePtr xs >>= newArray >>= poke o
 
 -- Input: Stable pointer to a process.
 -- Output: Array of events offered by the process (may include duplicates).
@@ -224,12 +223,11 @@ cpex_op_event_map inProc outLeft outRight outSize = do
 cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) -> Ptr (Ptr CUInt) ->
   IO CUInt
 cpex_op_alphabets inProc outAlphas outSizes = do
-  p <- deRefStablePtr inProc >>= readIORef
+  p <- input inProc
   let as = get_alphas p
   case as of
     Just as -> liftIO $ do
-      mapM ((mapM newIORef) . F.toList) (F.toList as)
-        >>= mapM (mapM newStablePtr)
+      mapM ((mapM newStablePtr) . F.toList) (F.toList as)
         >>= mapM newArray
         >>= newArray
         >>= poke outAlphas

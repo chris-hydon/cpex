@@ -25,13 +25,7 @@ int main(int argc, char *argv[])
   int ret = a.exec();
   delete w;
 
-  QList<CSPMSession *> sessions = ProgramState::getSessions();
-  CSPMSession * session;
-  while (!sessions.isEmpty())
-  {
-    session = sessions.takeFirst();
-    delete session;
-  }
+  ProgramState::cleanup();
   hs_exit();
 
   return ret;

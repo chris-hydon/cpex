@@ -38,7 +38,8 @@ SOURCES += \
     model/sessionmodel.cpp \
     programstate.cpp \
     model/ptypes.cpp \
-    delegate/processitemdelegate.cpp
+    delegate/processitemdelegate.cpp \
+    view/displaystring.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -52,7 +53,8 @@ HEADERS += \
     model/sessionmodel.h \
     programstate.h \
     model/ptypes.h \
-    delegate/processitemdelegate.h
+    delegate/processitemdelegate.h \
+    view/displaystring.h
 
 FORMS += \
     mainwindow.ui

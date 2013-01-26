@@ -128,11 +128,12 @@ QVariant ProcessModel::data(const QModelIndex & index, int role) const
   // Top level process.
   if (p->cause == Event())
   {
-    return p->process.displayText();
+    return p->process.displayText().toString();
   }
   else
   {
-    return QString("%1: %2").arg(p->cause.displayText(), p->process.displayText());
+    return QString("%1: %2").arg(p->cause.displayText(),
+      p->process.displayText().toString());
   }
 }
 

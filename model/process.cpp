@@ -35,7 +35,7 @@ public:
   PBase * backend;
   mutable bool loaded;
   mutable QList<QPair<Event, Process> > next;
-  mutable QString displayText;
+  mutable DisplayString displayText;
 };
 
 Process::Process()
@@ -152,13 +152,13 @@ QList<QPair<Event, Process> > Process::transitions() const
   return _d->next;
 }
 
-QString Process::displayText() const
+DisplayString Process::displayText() const
 {
-  if (_d->displayText == QString())
+  if (_d->displayText == DisplayString())
   {
     wchar_t * str = NULL;
     cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, &str);
-    _d->displayText = QString::fromWCharArray(str).replace(QRegExp("\\s+"), " ");
+    _d->displayText = DisplayString(QString::fromWCharArray(str));
     free(str);
   }
   return _d->displayText;

@@ -8,10 +8,12 @@ class ProcessItemDelegate : public QStyledItemDelegate
   Q_OBJECT
 public:
   explicit ProcessItemDelegate(QObject * parent = 0);
-  virtual void paint(QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index) const;
+  virtual void paint(QPainter *, const QStyleOptionViewItem &,
+    const QModelIndex &) const;
+  QSize sizeHint(const QStyleOptionViewItem &, const QModelIndex &) const;
 
 private:
-  QString stylize(QString input) const;
+  QString stylize(QString) const;
 
 };
 

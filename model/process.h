@@ -2,6 +2,7 @@
 #define PROCESS_H
 
 #include "event.h"
+#include "view/displaystring.h"
 
 #include <QList>
 #include <QPair>
@@ -19,7 +20,7 @@ public:
   Process(const Process & other);
   ~Process();
   QList<QPair<Event, Process> > transitions() const;
-  QString displayText() const;
+  DisplayString displayText() const;
   bool isValid() const;
   bool operator ==(const Process & other) const;
   uint hash() const;

@@ -1,8 +1,7 @@
 #ifndef PROCESSTREE_H
 #define PROCESSTREE_H
 
-#include "model/processmodel.h"
-
+#include <QAbstractItemModel>
 #include <QTreeView>
 
 class ProcessTree : public QTreeView
@@ -22,7 +21,7 @@ protected slots:
   void selectionChanged();
 
 private:
-  ProcessModel * _model;
+  QAbstractItemModel * _model;
 };
 
 #endif // PROCESSTREE_H

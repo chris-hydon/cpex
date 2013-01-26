@@ -26,40 +26,40 @@ TARGET = cpex
 TEMPLATE = app
 
 SOURCES += \
+    delegate/processitemdelegate.cpp \
+    model/event.cpp \
+    model/process.cpp \
+    model/ptypes.cpp \
+    model/sessionmodel.cpp \
+    model/transitionmodel.cpp \
+    view/displaystring.cpp \
+    widget/processtree.cpp \
+    widget/sessiontree.cpp \
+    widget/tracelistwidget.cpp \
+    cspmsession.cpp \
     main.cpp \
     mainwindow.cpp \
-    widget/processtree.cpp \
-    model/processmodel.cpp \
-    model/process.cpp \
-    cspmsession.cpp \
-    model/event.cpp \
-    widget/tracelistwidget.cpp \
-    widget/sessiontree.cpp \
-    model/sessionmodel.cpp \
-    programstate.cpp \
-    model/ptypes.cpp \
-    delegate/processitemdelegate.cpp \
-    view/displaystring.cpp
+    programstate.cpp
 
 HEADERS += \
-    mainwindow.h \
-    widget/processtree.h \
-    model/processmodel.h \
-    model/process.h \
-    cspmsession.h \
-    model/event.h \
-    widget/tracelistwidget.h \
-    widget/sessiontree.h \
-    model/sessionmodel.h \
-    programstate.h \
-    model/ptypes.h \
     delegate/processitemdelegate.h \
-    view/displaystring.h
+    model/event.h \
+    model/process.h \
+    model/ptypes.h \
+    model/sessionmodel.h \
+    model/transitionmodel.h \
+    view/displaystring.h \
+    widget/processtree.h \
+    widget/sessiontree.h \
+    widget/tracelistwidget.h \
+    cspmsession.h \
+    mainwindow.h \
+    programstate.h
 
 FORMS += \
     mainwindow.ui
 
 OTHER_FILES += \
     haskell/Cpex/Transitions.hs \
-    haskell/CSPM/Foreign.hs \
-    haskell/Cpex/Foreign.hs
+    haskell/Cpex/Foreign.hs \
+    haskell/CSPM/Foreign.hs

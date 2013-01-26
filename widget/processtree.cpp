@@ -1,8 +1,10 @@
 #include "processtree.h"
 
-#include "programstate.h"
+#include "model/transitionmodel.h"
 #include "mainwindow.h"
+#include "programstate.h"
 #include "ui_mainwindow.h"
+
 #include <QClipboard>
 
 ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
@@ -25,7 +27,7 @@ void ProcessTree::loadInitialState()
   {
     delete _model;
   }
-  _model = new ProcessModel(p, this);
+  _model = new TransitionModel(p, this);
   setModel(_model);
   connect(
     selectionModel(),

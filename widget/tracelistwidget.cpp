@@ -1,7 +1,7 @@
 #include "tracelistwidget.h"
 
 #include "model/process.h"
-#include "model/processmodel.h"
+#include "model/transitionmodel.h"
 
 TraceListWidget::TraceListWidget(QWidget * parent) : QListView(parent)
 {
@@ -11,7 +11,7 @@ TraceListWidget::TraceListWidget(QWidget * parent) : QListView(parent)
 
 void TraceListWidget::setTraces(const QModelIndex & index)
 {
-  const ProcessItem * proc = static_cast<ProcessItem *>(index.internalPointer());
+  const TransitionItem * proc = static_cast<TransitionItem *>(index.internalPointer());
   QStringList labels;
   while (proc->parent != NULL)
   {

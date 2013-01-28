@@ -1,9 +1,9 @@
 #include "sessionmodel.h"
 
+#include "widget/tab.h"
 #include "cspmsession.h"
 #include "mainwindow.h"
 #include "programstate.h"
-#include "ui_mainwindow.h"
 #include <QFileInfo>
 #include <QStringList>
 
@@ -158,10 +158,23 @@ void SessionModel::itemActivated(const QModelIndex & index)
 
   if (item->_type == SessionItem::ProcCall)
   {
-    MainWindow::getUi()->qleExpression->setText(item->_displayStr);
-    if (!item->_displayStr.contains('_'))
+    if (item->_displayStr.contains('_'))
     {
-      MainWindow::getUi()->qtvExplorer->loadInitialState();
+    }
+    else
+    {
+      MainWindow * mw = MainWindow::get();
+      Tab * tab = mw->currentTab();
+      if (tab->expression() == QString())
+      {
+        mw->setTabExpression(tab, item->_displayStr);
+      }
+      else
+      {
+        tab = mw->createTab();
+        mw->setTabExpression(tab, item->_displayStr);
+        mw->setCurrentTab(tab);
+      }
     }
   }
 }

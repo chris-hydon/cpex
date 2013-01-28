@@ -14,7 +14,6 @@ signals:
   void itemSelected(const QModelIndex & index);
 
 public slots:
-  void loadInitialState();
   void showContextMenu(const QPoint &);
 
 protected slots:

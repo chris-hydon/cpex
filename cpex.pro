@@ -34,7 +34,7 @@ SOURCES += \
     model/transitionmodel.cpp \
     view/displaystring.cpp \
     widget/processtree.cpp \
-    widget/sessiontree.cpp \
+    widget/tab.cpp \
     widget/tracelistwidget.cpp \
     cspmsession.cpp \
     main.cpp \
@@ -50,14 +50,11 @@ HEADERS += \
     model/transitionmodel.h \
     view/displaystring.h \
     widget/processtree.h \
-    widget/sessiontree.h \
+    widget/tab.h \
     widget/tracelistwidget.h \
     cspmsession.h \
     mainwindow.h \
     programstate.h
-
-FORMS += \
-    mainwindow.ui
 
 OTHER_FILES += \
     haskell/Cpex/Transitions.hs \

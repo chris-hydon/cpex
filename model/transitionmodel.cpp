@@ -29,25 +29,19 @@ TransitionItem * TransitionItem::next(int index) const
 
 int TransitionItem::count() const
 {
-  return _next.count();
-}
-
-bool TransitionItem::canFetchMore() const
-{
-  return process.isValid() && process.transitions().count() > count();
-}
-
-void TransitionItem::fetchMore(int toFetch)
-{
-  int got = count();
-
-  QList<QPair<Event, Process> > transitions = process.transitions();
-  QPair<Event, Process> pair;
-  for (int i = got; i < got + toFetch; i++)
+  // Lazy-load it here, since count() must always be called before next.
+  if (!_loaded && process.isValid())
   {
-    pair = transitions.at(i);
-    _next.append(new TransitionItem(pair.second, this, pair.first, i));
+    QList<QPair<Event, Process> > transitions = process.transitions();
+    QPair<Event, Process> pair;
+    for (int i = 0; i < transitions.count(); i++)
+    {
+      pair = transitions.at(i);
+      _next.append(new TransitionItem(pair.second, this, pair.first, i));
+    }
+    _loaded = true;
   }
+  return _next.count();
 }
 
 TransitionModel::TransitionModel(const Process & rootProcess, QObject * parent) :
@@ -137,40 +131,6 @@ QVariant TransitionModel::data(const QModelIndex & index, int role) const
   {
     return QString("%1: %2").arg(p->cause.displayText(), ptext);
   }
-}
-
-bool TransitionModel::canFetchMore(const QModelIndex & parent) const
-{
-  const TransitionItem * parentItem;
-  if (!parent.isValid())
-  {
-    parentItem = _rootProcess;
-  }
-  else
-  {
-    parentItem = static_cast<TransitionItem *>(parent.internalPointer());
-  }
-
-  return parentItem->canFetchMore();
-}
-
-void TransitionModel::fetchMore(const QModelIndex & parent)
-{
-  TransitionItem * parentItem;
-  if (!parent.isValid())
-  {
-    parentItem = _rootProcess;
-  }
-  else
-  {
-    parentItem = static_cast<TransitionItem *>(parent.internalPointer());
-  }
-
-  int got = parentItem->count();
-  int toFetch = qMin(10, parentItem->process.transitions().count() - got);
-  beginInsertRows(parent, got, got + toFetch - 1);
-  parentItem->fetchMore(toFetch);
-  endInsertRows();
 }
 
 bool TransitionModel::hasChildren(const QModelIndex & parent) const

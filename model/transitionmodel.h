@@ -14,8 +14,6 @@ public:
   ~TransitionItem();
   TransitionItem * next(int) const;
   int count() const;
-  bool canFetchMore() const;
-  void fetchMore(int);
 
   const Process process;
   const TransitionItem * parent;
@@ -23,7 +21,8 @@ public:
   const int index;
 
 private:
-  QList<TransitionItem *> _next;
+  mutable QList<TransitionItem *> _next;
+  mutable bool _loaded;
 };
 
 class TransitionModel : public QAbstractItemModel
@@ -36,8 +35,6 @@ public:
   int rowCount(const QModelIndex & parent = QModelIndex()) const;
   int columnCount(const QModelIndex & parent = QModelIndex()) const;
   QVariant data(const QModelIndex &, int role = Qt::DisplayRole) const;
-  bool canFetchMore(const QModelIndex &) const;
-  void fetchMore(const QModelIndex &);
   bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
 
 private:

@@ -119,7 +119,7 @@ QVariant SessionModel::data(const QModelIndex & index, int role) const
   }
   else
   {
-    return QFileInfo(item->_session->fileName()).fileName();
+    return item->_session->displayName();
   }
 }
 
@@ -165,7 +165,7 @@ void SessionModel::itemActivated(const QModelIndex & index)
     {
       MainWindow * mw = MainWindow::get();
       Tab * tab = mw->currentTab();
-      if (tab->expression() == QString())
+      if (!tab->expression().isValid())
       {
         mw->setTabExpression(tab, item->_displayStr);
       }

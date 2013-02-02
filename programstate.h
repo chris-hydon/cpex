@@ -2,12 +2,12 @@
 #define PROGRAMSTATE_H
 
 #include "cspmsession.h"
-#include <QList>
+#include <QMap>
 
 class ProgramState
 {
 public:
-  static QList<CSPMSession *> getSessions();
+  static QMap<QString, CSPMSession *> getSessions();
   static CSPMSession * newSession(const QString & fileName);
   static CSPMSession * currentSession();
   static CSPMSession * blankSession();
@@ -15,7 +15,7 @@ public:
   static void cleanup();
 
 private:
-  static QList<CSPMSession *> _sessions;
+  static QMap<QString, CSPMSession *> _sessions;
   static CSPMSession * _currentSession;
   static CSPMSession * _blankSession;
 };

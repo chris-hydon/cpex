@@ -36,6 +36,7 @@ public:
   mutable bool loaded;
   mutable QList<QPair<Event, Process> > next;
   mutable DisplayString displayText;
+  mutable QString fullText;
 };
 
 Process::Process()
@@ -157,16 +158,33 @@ DisplayString Process::displayText() const
   if (_d->displayText == DisplayString())
   {
     wchar_t * str = NULL;
-    cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, &str);
+    cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, true, &str);
     _d->displayText = DisplayString(QString::fromWCharArray(str));
     free(str);
   }
   return _d->displayText;
 }
 
+QString Process::fullText() const
+{
+  if (_d->fullText == QString())
+  {
+    wchar_t * str = NULL;
+    cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, false, &str);
+    _d->fullText = QString::fromWCharArray(str).replace(QRegExp("\\s+"), " ");
+    free(str);
+  }
+  return _d->fullText;
+}
+
 bool Process::isValid() const
 {
   return _d;
+}
+
+const CSPMSession * Process::session() const
+{
+  return _d->session;
 }
 
 bool Process::operator ==(const Process & other) const

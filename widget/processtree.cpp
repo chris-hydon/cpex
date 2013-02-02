@@ -1,6 +1,5 @@
 #include "processtree.h"
 
-#include "model/transitionmodel.h"
 #include "mainwindow.h"
 #include "programstate.h"
 

@@ -2,7 +2,9 @@
 
 #include "haskell/CSPM/Foreign_stub.h"
 #include "haskell/Cpex/Foreign_stub.h"
+#include <QFileInfo>
 #include <QStringList>
+#include "programstate.h"
 
 CSPMSession::CSPMSession() : _procs(new QSet<Process>)
 {
@@ -29,16 +31,37 @@ const QString & CSPMSession::fileName() const
   return _fileName;
 }
 
-int CSPMSession::loadFile(const QString & fileName)
+const QString & CSPMSession::displayName() const
 {
-  _fileName = fileName;
-  _procCallNames = QStringList();
-  _procCallNamesLoaded = false;
-  if (_file != NULL)
+  return _displayName;
+}
+
+bool CSPMSession::loadFile(const QString & fileName)
+{
+  void * file;
+  if (cspm_session_load_file(_hsSession, (void *) fileName.toStdWString().c_str(), &file))
   {
-    cspm_file_free(_file);
+    if (_file != NULL)
+    {
+      cspm_file_free(_file);
+    }
+    _file = file;
+    _fileName = fileName;
+    _procCallNames = QStringList();
+    _procCallNamesLoaded = false;
+    _procs->clear();
+
+    QString disp = QFileInfo(_fileName).baseName().replace(QRegExp("[^0-9a-z]"), "");
+    _displayName = disp;
+    int i = 0;
+    QMap<QString, CSPMSession *> sessions = ProgramState::getSessions();
+    while (sessions.contains(_displayName))
+    {
+      _displayName = disp + QString::number(i++);
+    }
+    return true;
   }
-  return cspm_session_load_file(_hsSession, (void *) fileName.toStdWString().c_str(), &_file);
+  return false;
 }
 
 Process CSPMSession::compileExpression(const QString & expression) const

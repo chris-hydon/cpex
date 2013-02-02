@@ -31,7 +31,7 @@ foreign export ccall
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 foreign export ccall
-  cpex_process_string :: SessionPtr -> ProcPtr -> Ptr CWString -> IO CUInt
+  cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
 foreign export ccall
   cpex_process_equal :: ProcPtr -> ProcPtr -> IO Bool
 foreign export ccall
@@ -129,9 +129,9 @@ cpex_event_string inEvent outName outType = do
 
 -- Input: Process.
 -- Output: A string representation of that process, suitable for output.
-cpex_process_string :: SessionPtr -> ProcPtr -> Ptr CWString -> IO CUInt
-cpex_process_string sessPtr inProc outString = runSession sessPtr $ do
-  doc <- liftIO (input inProc) >>= M.prettyPrintBrief
+cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
+cpex_process_string sessPtr inProc inBrief outString = runSession sessPtr $ do
+  doc <- liftIO (input inProc) >>= (if inBrief then M.prettyPrintBrief else M.prettyPrint)
   liftIO $ (newCWString . show) doc >>= poke outString
 
 -- Input: Two processes.

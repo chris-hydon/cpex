@@ -4,14 +4,18 @@
 #include <QLineEdit>
 #include <QString>
 #include <QWidget>
+#include "model/expression.h"
 
 class Tab : public QWidget
 {
   Q_OBJECT
 public:
   explicit Tab(QWidget * parent = 0);
-  QString expression() const;
-  bool setExpression(const QString &);
+  Expression expression() const;
+  void setExpression(const Expression &);
+  void setupProbe(const Expression &);
+  void setupInspector();
+  void updateExprBox();
   QLineEdit * exprBox;
 
 signals:
@@ -20,7 +24,7 @@ public slots:
 
 private:
   Q_DISABLE_COPY(Tab)
-  QString _expression;
+  Expression _expression;
 };
 
 #endif // TAB_H

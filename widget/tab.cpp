@@ -6,6 +6,7 @@
 #include <QtGui/QSplitter>
 
 #include "delegate/processitemdelegate.h"
+#include "model/expression.h"
 #include "model/process.h"
 #include "model/transitionmodel.h"
 #include "widget/processtree.h"
@@ -19,18 +20,19 @@ Tab::Tab(QWidget * parent) : QWidget(parent)
   grid->addWidget(exprBox);
 }
 
-QString Tab::expression() const
+Expression Tab::expression() const
 {
   return _expression;
 }
 
-bool Tab::setExpression(const QString & expr)
+void Tab::setExpression(const Expression & expr)
 {
-  Process p = ProgramState::currentSession()->compileExpression(expr);
-  if (!p.isValid())
+  if (!expr.isValid())
   {
-    return false;
+    return;
   }
+  _expression = expr;
+  updateExprBox();
 
   // Index 0 will be the expression box. Remove everything else.
   QLayoutItem * oldContents;
@@ -40,13 +42,25 @@ bool Tab::setExpression(const QString & expr)
     delete oldContents;
   }
 
+  switch (expr.mode())
+  {
+    case Expression::Probe:
+      setupProbe(expr);
+      break;
+    case Expression::Inspect:
+      break;
+  }
+}
+
+void Tab::setupProbe(const Expression & expr)
+{
   QSplitter * splitter = new QSplitter(this);
   splitter->setOrientation(Qt::Horizontal);
   layout()->addWidget(splitter);
 
   ProcessTree * tree = new ProcessTree(splitter);
   tree->setHeaderHidden(true);
-  TransitionModel * m = new TransitionModel(p, tree);
+  TransitionModel * m = new TransitionModel(expr.process(), tree);
   tree->setModel(m);
 
   TraceListWidget * trace = new TraceListWidget(splitter);
@@ -85,8 +99,10 @@ bool Tab::setExpression(const QString & expr)
 
   // Item delegate.
   tree->setItemDelegate(new ProcessItemDelegate(tree));
+}
 
-  _expression = expr;
-  exprBox->setText(expr);
-  return true;
+void Tab::updateExprBox()
+{
+  exprBox->setText(_expression.text(ProgramState::getSessions().count() > 1,
+    _expression.mode() != Expression::Probe));
 }

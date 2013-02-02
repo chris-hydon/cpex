@@ -28,6 +28,7 @@ TEMPLATE = app
 SOURCES += \
     delegate/processitemdelegate.cpp \
     model/event.cpp \
+    model/expression.cpp \
     model/process.cpp \
     model/ptypes.cpp \
     model/sessionmodel.cpp \
@@ -44,6 +45,7 @@ SOURCES += \
 HEADERS += \
     delegate/processitemdelegate.h \
     model/event.h \
+    model/expression.h \
     model/process.h \
     model/ptypes.h \
     model/sessionmodel.h \

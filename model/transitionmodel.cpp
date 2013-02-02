@@ -125,15 +125,17 @@ QVariant TransitionModel::data(const QModelIndex & index, int role) const
   }
 
   const TransitionItem * p = static_cast<TransitionItem *>(index.internalPointer());
+  QString ptext = (role == Qt::DisplayRole ? p->process.displayText().toString() :
+    p->process.fullText());
+
   // Top level process.
   if (p->cause == Event())
   {
-    return p->process.displayText().toString();
+    return ptext;
   }
   else
   {
-    return QString("%1: %2").arg(p->cause.displayText(),
-      p->process.displayText().toString());
+    return QString("%1: %2").arg(p->cause.displayText(), ptext);
   }
 }
 

@@ -21,7 +21,9 @@ public:
   ~Process();
   QList<QPair<Event, Process> > transitions() const;
   DisplayString displayText() const;
+  QString fullText() const;
   bool isValid() const;
+  const CSPMSession * session() const;
   bool operator ==(const Process & other) const;
   uint hash() const;
   const Process & operator =(const Process & other);

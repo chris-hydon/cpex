@@ -164,13 +164,15 @@ void MainWindow::actionOpen()
 
 bool MainWindow::setTabExpression(Tab * tab, const QString & expr)
 {
-  if (!tab->setExpression(expr))
+  Expression e(expr);
+  if (!e.isValid())
   {
     uiStatus->showMessage(tr("Invalid expression for the current file."), 5000);
     return false;
   }
   else
   {
+    tab->setExpression(e);
     uiTabs->setTabsClosable(true);
     uiTabs->setTabText(uiTabs->indexOf(tab), expr);
     return true;
@@ -195,7 +197,7 @@ void MainWindow::closeTab(int index)
     newBlankTab();
   }
   if (uiTabs->count() == 1 &&
-    static_cast<Tab *>(uiTabs->widget(0))->expression() == QString())
+    !static_cast<Tab *>(uiTabs->widget(0))->expression().isValid())
   {
     uiTabs->setTabsClosable(false);
   }
@@ -217,7 +219,7 @@ void MainWindow::newTabFromExpression()
   else
   {
     setCurrentTab(tab);
-    oldTab->exprBox->setText(oldTab->expression());
+    oldTab->updateExprBox();
   }
 }
 

@@ -12,7 +12,8 @@ public:
   CSPMSession();
   ~CSPMSession();
   const QString & fileName() const;
-  int loadFile(const QString & fileName);
+  const QString & displayName() const;
+  bool loadFile(const QString & fileName);
   Process compileExpression(const QString & expression) const;
   QStringList procCallNames() const;
   QSet<Process> * procs() const;
@@ -23,7 +24,8 @@ private:
   void * _hsSession;
   void * _file;
   QString _fileName;
-  QSet<Process> * const _procs;
+  QString _displayName;
+  QSet<Process> * _procs;
   mutable QStringList _procCallNames;
   mutable bool _procCallNamesLoaded;
 };

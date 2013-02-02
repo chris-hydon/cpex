@@ -1,10 +1,10 @@
 #include "programstate.h"
 
-QList<CSPMSession *> ProgramState::_sessions;
+QMap<QString, CSPMSession *> ProgramState::_sessions;
 CSPMSession * ProgramState::_currentSession = NULL;
 CSPMSession * ProgramState::_blankSession = NULL;
 
-QList<CSPMSession *> ProgramState::getSessions()
+QMap<QString, CSPMSession *> ProgramState::getSessions()
 {
   return ProgramState::_sessions;
 }
@@ -14,7 +14,7 @@ CSPMSession * ProgramState::newSession(const QString & fileName)
   CSPMSession * session = new CSPMSession();
   if (session->loadFile(fileName))
   {
-    ProgramState::_sessions.append(session);
+    ProgramState::_sessions.insert(session->displayName(), session);
     ProgramState::_currentSession = session;
     return session;
   }
@@ -47,9 +47,10 @@ void ProgramState::setCurrentSession(CSPMSession * session)
 void ProgramState::cleanup()
 {
   CSPMSession * session;
-  while (!ProgramState::_sessions.isEmpty())
+  QList<CSPMSession *> toDelete = ProgramState::_sessions.values();
+  while (!toDelete.isEmpty())
   {
-    session = ProgramState::_sessions.takeFirst();
+    session = toDelete.takeFirst();
     delete session;
   }
 

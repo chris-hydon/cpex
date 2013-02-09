@@ -29,6 +29,7 @@ SOURCES += \
     delegate/processitemdelegate.cpp \
     model/event.cpp \
     model/expression.cpp \
+    model/inspectmodel.cpp \
     model/process.cpp \
     model/ptypes.cpp \
     model/sessionmodel.cpp \
@@ -46,6 +47,7 @@ HEADERS += \
     delegate/processitemdelegate.h \
     model/event.h \
     model/expression.h \
+    model/inspectmodel.h \
     model/process.h \
     model/ptypes.h \
     model/sessionmodel.h \

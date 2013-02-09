@@ -70,7 +70,7 @@ protected:
   Process opProcess() const;
   QPair<Process, Process> opProcess2() const;
   QList<Process> opProcesses() const;
-  QString opProcCall() const;
+  QPair<Process, QString> opProcCall() const;
 
   mutable QString _text;
 
@@ -84,12 +84,35 @@ private:
   mutable QList<Process> _processes;
 };
 
-class PAlphaParallel : public PBase
+class PUnary : public PBase
+{
+public:
+  using PBase::opProcess;
+protected:
+  PUnary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
+};
+
+class PBinary : public PBase
+{
+public:
+  using PBase::opProcess2;
+protected:
+  PBinary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
+};
+
+class PNary : public PBase
+{
+public:
+  using PBase::opProcesses;
+protected:
+  PNary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
+};
+
+class PAlphaParallel : public PNary
 {
 public:
   using PBase::opAlphabets;
-  using PBase::opProcesses;
-  PAlphaParallel(void * p, const CSPMSession * s) : PBase(p, s, AlphaParallel) {}
+  PAlphaParallel(void * p, const CSPMSession * s) : PNary(p, s, AlphaParallel) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -103,12 +126,11 @@ public:
   }
 };
 
-class PException : public PBase
+class PException : public PBinary
 {
 public:
   using PBase::opEvents;
-  using PBase::opProcess2;
-  PException(void * p, const CSPMSession * s) : PBase(p, s, Exception) {}
+  PException(void * p, const CSPMSession * s) : PBinary(p, s, Exception) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -122,11 +144,10 @@ public:
   }
 };
 
-class PExternalChoice : public PBase
+class PExternalChoice : public PNary
 {
 public:
-  using PBase::opProcesses;
-  PExternalChoice(void * p, const CSPMSession * s) : PBase(p, s, ExternalChoice) {}
+  PExternalChoice(void * p, const CSPMSession * s) : PNary(p, s, ExternalChoice) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -139,12 +160,11 @@ public:
   }
 };
 
-class PGenParallel : public PBase
+class PGenParallel : public PNary
 {
 public:
   using PBase::opEvents;
-  using PBase::opProcesses;
-  PGenParallel(void * p, const CSPMSession * s) : PBase(p, s, GenParallel) {}
+  PGenParallel(void * p, const CSPMSession * s) : PNary(p, s, GenParallel) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -158,12 +178,11 @@ public:
   }
 };
 
-class PHide : public PBase
+class PHide : public PUnary
 {
 public:
   using PBase::opEvents;
-  using PBase::opProcess;
-  PHide(void * p, const CSPMSession * s) : PBase(p, s, Hide) {}
+  PHide(void * p, const CSPMSession * s) : PUnary(p, s, Hide) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -177,11 +196,10 @@ public:
   }
 };
 
-class PInternalChoice : public PBase
+class PInternalChoice : public PNary
 {
 public:
-  using PBase::opProcesses;
-  PInternalChoice(void * p, const CSPMSession * s) : PBase(p, s, InternalChoice) {}
+  PInternalChoice(void * p, const CSPMSession * s) : PNary(p, s, InternalChoice) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -194,11 +212,10 @@ public:
   }
 };
 
-class PInterleave : public PBase
+class PInterleave : public PNary
 {
 public:
-  using PBase::opProcesses;
-  PInterleave(void * p, const CSPMSession * s) : PBase(p, s, Interleave) {}
+  PInterleave(void * p, const CSPMSession * s) : PNary(p, s, Interleave) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -211,11 +228,10 @@ public:
   }
 };
 
-class PInterrupt : public PBase
+class PInterrupt : public PBinary
 {
 public:
-  using PBase::opProcess2;
-  PInterrupt(void * p, const CSPMSession * s) : PBase(p, s, Interrupt) {}
+  PInterrupt(void * p, const CSPMSession * s) : PBinary(p, s, Interrupt) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -228,12 +244,11 @@ public:
   }
 };
 
-class PLinkParallel : public PBase
+class PLinkParallel : public PBinary
 {
 public:
   using PBase::opEventMap;
-  using PBase::opProcess2;
-  PLinkParallel(void * p, const CSPMSession * s) : PBase(p, s, LinkParallel) {}
+  PLinkParallel(void * p, const CSPMSession * s) : PBinary(p, s, LinkParallel) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -247,11 +262,10 @@ public:
   }
 };
 
-class POperator : public PBase
+class POperator : public PUnary
 {
 public:
-  using PBase::opProcess;
-  POperator(void * p, const CSPMSession * s) : PBase(p, s, Operator) {}
+  POperator(void * p, const CSPMSession * s) : PUnary(p, s, Operator) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -264,12 +278,11 @@ public:
   }
 };
 
-class PPrefix : public PBase
+class PPrefix : public PUnary
 {
 public:
   using PBase::opEvent;
-  using PBase::opProcess;
-  PPrefix(void * p, const CSPMSession * s) : PBase(p, s, Prefix) {}
+  PPrefix(void * p, const CSPMSession * s) : PUnary(p, s, Prefix) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -283,12 +296,11 @@ public:
   }
 };
 
-class PRename : public PBase
+class PRename : public PUnary
 {
 public:
   using PBase::opEventMap;
-  using PBase::opProcess;
-  PRename(void * p, const CSPMSession * s) : PBase(p, s, Rename) {}
+  PRename(void * p, const CSPMSession * s) : PUnary(p, s, Rename) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -302,11 +314,10 @@ public:
   }
 };
 
-class PSequentialComp : public PBase
+class PSequentialComp : public PBinary
 {
 public:
-  using PBase::opProcess2;
-  PSequentialComp(void * p, const CSPMSession * s) : PBase(p, s, SequentialComp) {}
+  PSequentialComp(void * p, const CSPMSession * s) : PBinary(p, s, SequentialComp) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -319,11 +330,10 @@ public:
   }
 };
 
-class PSlidingChoice : public PBase
+class PSlidingChoice : public PBinary
 {
 public:
-  using PBase::opProcess2;
-  PSlidingChoice(void * p, const CSPMSession * s) : PBase(p, s, SlidingChoice) {}
+  PSlidingChoice(void * p, const CSPMSession * s) : PBinary(p, s, SlidingChoice) {}
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -349,7 +359,7 @@ public:
 
   virtual bool isEqual(const PProcCall * other) const
   {
-    return opProcCall() == other->opProcCall();
+    return opProcCall().second == other->opProcCall().second;
   }
 };
 

@@ -5,11 +5,12 @@
 
 TransitionItem::TransitionItem(const Process & process, const TransitionItem * parent,
   const Event & cause, int index) : process(process), parent(parent),
-  cause(cause), index(index)
+  cause(cause), index(index), _loaded(false)
 {
 }
 
-TransitionItem::TransitionItem(const Process & process) : parent(NULL), index(0)
+TransitionItem::TransitionItem(const Process & process) : parent(NULL), index(0),
+  _loaded(true)
 {
   _next.append(new TransitionItem(process, this, Event(), 0));
 }

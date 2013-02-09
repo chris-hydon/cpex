@@ -1,36 +1,34 @@
-#ifndef TRANSITIONMODEL_H
-#define TRANSITIONMODEL_H
+#ifndef INSPECTMODEL_H
+#define INSPECTMODEL_H
 
-#include "process.h"
 #include <QAbstractItemModel>
+#include "model/process.h"
 
-class TransitionItem
+class InspectItem
 {
 public:
-  TransitionItem(const Process &, const TransitionItem *, const Event &, int);
+  InspectItem(const Process &, const InspectItem *, int);
   // Overloaded constructor - intended for use only by the root, this constructs
-  // two TransitionItems, one the parent of the next, so that the root may be
-  // visible.
-  TransitionItem(const Process &);
-  ~TransitionItem();
-  TransitionItem * next(int) const;
+  // two InspectItems, one the parent of the next, so that the root may be visible.
+  InspectItem(const Process &);
+  ~InspectItem();
+  InspectItem * next(int) const;
   int count() const;
 
   const Process process;
-  const TransitionItem * parent;
-  const Event cause;
+  const InspectItem * parent;
   const int index;
 
 private:
-  mutable QList<TransitionItem *> _next;
+  mutable QList<InspectItem *> _next;
   mutable bool _loaded;
 };
 
-class TransitionModel : public QAbstractItemModel
+class InspectModel : public QAbstractItemModel
 {
 public:
-  TransitionModel(const Process &, QObject * parent = 0);
-  ~TransitionModel();
+  InspectModel(const Process &, QObject * parent = 0);
+  ~InspectModel();
   QModelIndex index(int, int, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex &) const;
   int rowCount(const QModelIndex & parent = QModelIndex()) const;
@@ -39,7 +37,7 @@ public:
   bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
 
 private:
-  TransitionItem * _rootProcess;
+  InspectItem * _rootProcess;
 };
 
-#endif // TRANSITIONMODEL_H
+#endif // INSPECTMODEL_H

@@ -3,7 +3,7 @@
 #include "haskell/Cpex/Foreign_stub.h"
 
 PBase::PBase(void * hsPtr, const CSPMSession * session, PType type) : type(type),
-  _hsPtr(hsPtr), _session(session)
+  _hsPtr(hsPtr), _session(session), _loadedEvent(false), _loadedProcess(false)
 {
 }
 
@@ -146,20 +146,20 @@ QList<Process> PBase::opProcesses() const
   return _processes;
 }
 
-QString PBase::opProcCall() const
+QPair<Process, QString> PBase::opProcCall() const
 {
   if (_loadedProcess)
   {
-    return _text;
+    return QPair<Process, QString>(_processes.at(0), _text);
   }
 
   void * proc = NULL;
   wchar_t * str = NULL;
   cpex_op_proccall(_hsPtr, &proc, &str);
 
+  _processes.append(Process::create(proc, _session));
   _text = QString::fromWCharArray(str);
-  free(proc);
   free(str);
   _loadedProcess = true;
-  return _text;
+  return QPair<Process, QString>(_processes.at(0), _text);
 }

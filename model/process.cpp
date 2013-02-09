@@ -153,6 +153,58 @@ QList<QPair<Event, Process> > Process::transitions() const
   return _d->next;
 }
 
+QList<Process> Process::components(bool expandCall) const
+{
+  QList<Process> ret;
+  switch (_d->backend->type)
+  {
+    // Unary ops
+    case PBase::Hide:
+    case PBase::Operator:
+    case PBase::Prefix:
+    case PBase::Rename:
+    {
+      PUnary * b = static_cast<PUnary *>(_d->backend);
+      ret.append(b->opProcess());
+      break;
+    }
+    // Binary ops
+    case PBase::Exception:
+    case PBase::Interrupt:
+    case PBase::LinkParallel:
+    case PBase::SequentialComp:
+    case PBase::SlidingChoice:
+    {
+      PBinary * b = static_cast<PBinary *>(_d->backend);
+      ret.append(b->opProcess2().first);
+      ret.append(b->opProcess2().second);
+      break;
+    }
+    // N-ary ops
+    case PBase::AlphaParallel:
+    case PBase::ExternalChoice:
+    case PBase::GenParallel:
+    case PBase::Interleave:
+    case PBase::InternalChoice:
+    {
+      PNary * b = static_cast<PNary *>(_d->backend);
+      ret = b->opProcesses();
+      break;
+    }
+    // ProcCall - show successors if requested.
+    case PBase::ProcCall:
+    {
+      if (expandCall)
+      {
+        PProcCall * b = static_cast<PProcCall *>(_d->backend);
+        ret.append(b->opProcCall().first);
+      }
+      break;
+    }
+  }
+  return ret;
+}
+
 DisplayString Process::displayText() const
 {
   if (_d->displayText == DisplayString())

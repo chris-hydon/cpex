@@ -14,7 +14,7 @@ public:
   Expression expression() const;
   void setExpression(const Expression &);
   void setupProbe(const Expression &);
-  void setupInspector();
+  void setupInspector(const Expression &);
   void updateExprBox();
   QLineEdit * exprBox;
 

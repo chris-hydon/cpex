@@ -7,6 +7,7 @@
 
 #include "delegate/processitemdelegate.h"
 #include "model/expression.h"
+#include "model/inspectmodel.h"
 #include "model/process.h"
 #include "model/transitionmodel.h"
 #include "widget/processtree.h"
@@ -48,6 +49,7 @@ void Tab::setExpression(const Expression & expr)
       setupProbe(expr);
       break;
     case Expression::Inspect:
+      setupInspector(expr);
       break;
   }
 }
@@ -100,6 +102,38 @@ void Tab::setupProbe(const Expression & expr)
   // Item delegate.
   tree->setItemDelegate(new ProcessItemDelegate(tree));
 }
+
+void Tab::setupInspector(const Expression & expr)
+{
+  QSplitter * splitter = new QSplitter(this);
+  splitter->setOrientation(Qt::Horizontal);
+  layout()->addWidget(splitter);
+
+  ProcessTree * tree = new ProcessTree(this);
+  tree->setHeaderHidden(true);
+  InspectModel * m = new InspectModel(expr.process(), tree);
+  tree->setModel(m);
+  layout()->addWidget(tree);
+
+  // Horizontal scroll bar. Need to do this after loading the model for some reason.
+  tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+  tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
+  tree->header()->setStretchLastSection(false);
+
+  // Expand the root.
+  tree->expand(m->index(0, 0, tree->rootIndex()));
+
+  // Context menu.
+  tree->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(
+    tree, SIGNAL(customContextMenuRequested(const QPoint &)),
+    tree, SLOT(showContextMenu(const QPoint &))
+  );
+
+  // Item delegate.
+  tree->setItemDelegate(new ProcessItemDelegate(tree));
+}
+
 
 void Tab::updateExprBox()
 {

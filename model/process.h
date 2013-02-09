@@ -20,6 +20,7 @@ public:
   Process(const Process & other);
   ~Process();
   QList<QPair<Event, Process> > transitions() const;
+  QList<Process> components(bool expandCall = false) const;
   DisplayString displayText() const;
   QString fullText() const;
   bool isValid() const;

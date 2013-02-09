@@ -108,14 +108,29 @@ int InspectModel::columnCount(const QModelIndex &) const
 
 QVariant InspectModel::data(const QModelIndex & index, int role) const
 {
+  if (!index.isValid())
   if ((role != Qt::DisplayRole && role != Qt::EditRole) || !index.isValid())
   {
     return QVariant();
   }
 
   const InspectItem * p = static_cast<InspectItem *>(index.internalPointer());
-  return (role == Qt::DisplayRole ? p->process.displayText().toString() :
-    p->process.fullText());
+
+  switch (role)
+  {
+    case Qt::DisplayRole:
+      return p->process.displayText().toString();
+    case Qt::EditRole:
+      return p->process.fullText();
+    case Qt::ToolTipRole:
+    {
+      QString tt = p->process.toolTip();
+      if (tt == QString()) return QVariant();
+      return tt;
+    }
+    default:
+      return QVariant();
+  }
 }
 
 bool InspectModel::hasChildren(const QModelIndex & parent) const

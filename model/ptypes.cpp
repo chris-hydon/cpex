@@ -1,5 +1,6 @@
 #include "ptypes.h"
 
+#include <QStringList>
 #include "haskell/Cpex/Foreign_stub.h"
 
 PBase::PBase(void * hsPtr, const CSPMSession * session, PType type) : type(type),
@@ -162,4 +163,26 @@ QPair<Process, QString> PBase::opProcCall() const
   free(str);
   _loadedProcess = true;
   return QPair<Process, QString>(_processes.at(0), _text);
+}
+
+QString PAlphaParallel::toolTip() const
+{
+  QString tt("<p>Alphabetized Parallel</p>");
+  tt += "<table border=\"1\" cellspacing=\"0\" cellpadding=\"2\">";
+  tt += "<tr><td>Component</td><td>Events</td></tr>";
+  QList<Process> procs = opProcesses();
+  QList<QList<Event> > alphas = opAlphabets();
+  for (int i = 0; i < procs.count(); i++)
+  {
+    QStringList events;
+    for (int j = 0; j < alphas[i].count(); j++)
+    {
+      events << alphas[i][j].displayText();
+    }
+    tt += QString(
+      "<tr><td valign=\"middle\">%1</td><td valign=\"middle\">%2</td></tr>")
+      .arg(procs[i].displayText().toString(), events.join(", "));
+  }
+  tt += "</table>";
+  return tt;
 }

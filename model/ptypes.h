@@ -55,6 +55,9 @@ public:
   // Each implementation must call other.isEqual(this) to complete the visitor loop.
   virtual bool operator ==(const PBase & other) const = 0;
 
+  // Operators may give a tool tip.
+  virtual QString toolTip() const { return QString(); }
+
 // Protected methods in PBase can be exposed in the subclasses that require them
 // with the "using" keyword-> A subclass will use at most one of opEvent, opEvents,
 // opEventMap and opAlphabets, and at most one of opProcess, opProcess2, opProcesses
@@ -113,6 +116,7 @@ class PAlphaParallel : public PNary
 public:
   using PBase::opAlphabets;
   PAlphaParallel(void * p, const CSPMSession * s) : PNary(p, s, AlphaParallel) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {

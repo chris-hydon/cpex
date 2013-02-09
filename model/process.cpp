@@ -229,6 +229,11 @@ QString Process::fullText() const
   return _d->fullText;
 }
 
+QString Process::toolTip() const
+{
+  return _d->backend->toolTip();
+}
+
 bool Process::isValid() const
 {
   return _d;

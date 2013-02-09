@@ -23,6 +23,7 @@ public:
   QList<Process> components(bool expandCall = false) const;
   DisplayString displayText() const;
   QString fullText() const;
+  QString toolTip() const;
   bool isValid() const;
   const CSPMSession * session() const;
   bool operator ==(const Process & other) const;

@@ -241,8 +241,7 @@ const CSPMSession * Process::session() const
 
 bool Process::operator ==(const Process & other) const
 {
-  // Equate two processes if they are the same on the backend.
-  return _d->backend == other._d->backend;
+  return cpex_process_equal(_d->hsPtr, other._d->hsPtr);
 }
 
 uint Process::hash() const

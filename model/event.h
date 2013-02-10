@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QString>
 
+class CSPMSession;
 class EventData;
 
 class Event
@@ -16,13 +17,15 @@ public:
   };
 
   Event();
-  Event(const Event & other);
-  Event(void * _hsPtr);
+  Event(const Event &);
+  Event(void *);
+  Event(const CSPMSession *, const QString &);
   ~Event();
+  bool isValid() const;
   QString displayText() const;
   Type type() const;
-  bool operator ==(const Event & other) const;
-  Event & operator =(const Event & other);
+  bool operator ==(const Event &) const;
+  Event & operator =(const Event &);
 
 private:
   QExplicitlySharedDataPointer<EventData> _d;

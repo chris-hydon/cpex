@@ -3,6 +3,8 @@
 #include "haskell/Cpex/Foreign_stub.h"
 #include <HsFFI.h>
 
+#include "cspmsession.h"
+
 class EventData : public QSharedData
 {
 public:
@@ -38,8 +40,23 @@ Event::Event(void * hsPtr)
   _d = new EventData(hsPtr);
 }
 
+Event::Event(const CSPMSession * session, const QString & text)
+{
+  void * hsPtr = NULL;
+  if (cpex_string_to_event(session->getHsPtr(), (void *) text.toStdWString().c_str(),
+    &hsPtr))
+  {
+    _d = new EventData(hsPtr);
+  }
+}
+
 Event::~Event()
 {
+}
+
+bool Event::isValid() const
+{
+  return _d;
 }
 
 void Event::_lazyLoad() const
@@ -53,7 +70,7 @@ void Event::_lazyLoad() const
 
 QString Event::displayText() const
 {
-  if (!_d)
+  if (!isValid())
   {
     return QString();
   }
@@ -67,7 +84,7 @@ QString Event::displayText() const
 
 Event::Type Event::type() const
 {
-  if (!_d)
+  if (!isValid())
   {
     return Event::Tau;
   }
@@ -81,7 +98,12 @@ Event::Type Event::type() const
 
 bool Event::operator ==(const Event & other) const
 {
-  return displayText() == other.displayText();
+  if (!isValid())
+  {
+    return !other.isValid();
+  }
+  return other.isValid() &&
+    (_d == other._d || cpex_event_equal(_d->hsPtr, other._d->hsPtr));
 }
 
 Event & Event::operator =(const Event & other)

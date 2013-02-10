@@ -75,6 +75,8 @@ protected:
   QList<Process> opProcesses() const;
   QPair<Process, QString> opProcCall() const;
 
+  static QString displayEventList(QList<Event>);
+
   mutable QString _text;
 
 private:
@@ -135,6 +137,7 @@ class PException : public PBinary
 public:
   using PBase::opEvents;
   PException(void * p, const CSPMSession * s) : PBinary(p, s, Exception) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -152,6 +155,7 @@ class PExternalChoice : public PNary
 {
 public:
   PExternalChoice(void * p, const CSPMSession * s) : PNary(p, s, ExternalChoice) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -169,6 +173,7 @@ class PGenParallel : public PNary
 public:
   using PBase::opEvents;
   PGenParallel(void * p, const CSPMSession * s) : PNary(p, s, GenParallel) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -187,6 +192,7 @@ class PHide : public PUnary
 public:
   using PBase::opEvents;
   PHide(void * p, const CSPMSession * s) : PUnary(p, s, Hide) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -204,6 +210,7 @@ class PInternalChoice : public PNary
 {
 public:
   PInternalChoice(void * p, const CSPMSession * s) : PNary(p, s, InternalChoice) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -220,6 +227,7 @@ class PInterleave : public PNary
 {
 public:
   PInterleave(void * p, const CSPMSession * s) : PNary(p, s, Interleave) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -236,6 +244,7 @@ class PInterrupt : public PBinary
 {
 public:
   PInterrupt(void * p, const CSPMSession * s) : PBinary(p, s, Interrupt) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -253,6 +262,7 @@ class PLinkParallel : public PBinary
 public:
   using PBase::opEventMap;
   PLinkParallel(void * p, const CSPMSession * s) : PBinary(p, s, LinkParallel) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -305,6 +315,7 @@ class PRename : public PUnary
 public:
   using PBase::opEventMap;
   PRename(void * p, const CSPMSession * s) : PUnary(p, s, Rename) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -322,6 +333,7 @@ class PSequentialComp : public PBinary
 {
 public:
   PSequentialComp(void * p, const CSPMSession * s) : PBinary(p, s, SequentialComp) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -338,6 +350,7 @@ class PSlidingChoice : public PBinary
 {
 public:
   PSlidingChoice(void * p, const CSPMSession * s) : PBinary(p, s, SlidingChoice) {}
+  virtual QString toolTip() const;
 
   virtual bool operator ==(const PBase & other) const
   {

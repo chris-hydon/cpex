@@ -1,6 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Cpex.Foreign () where
 
+import Control.Monad
 import Control.Monad.Trans
 import Cpex.Transitions
 import CSPM
@@ -30,6 +31,8 @@ foreign export ccall
     Ptr CUInt -> IO ()
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
+foreign export ccall
+  cpex_event_equal :: EventPtr -> EventPtr -> IO Bool
 foreign export ccall
   cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
 foreign export ccall
@@ -62,6 +65,8 @@ foreign export ccall
     Ptr CUInt -> IO CUInt
 foreign export ccall
   cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
+foreign export ccall
+  cpex_string_to_event :: SessionPtr -> CWString -> Ptr EventPtr -> IO CUInt
 
 -- Builtin process STOP.
 builtInName s = name . head . filter ((== s) . stringName) $ builtins False
@@ -126,6 +131,14 @@ cpex_event_string inEvent outName outType = do
   where etype Tau = 1
         etype Tick = 2
         etype _ = 0
+
+-- Input: Two events.
+-- Returns: True if the input events are equal, false if not.
+cpex_event_equal :: EventPtr -> EventPtr -> IO Bool
+cpex_event_equal inEv1 inEv2 = do
+  e1 <- input inEv1
+  e2 <- input inEv2
+  return (e1 == e2)
 
 -- Input: Process.
 -- Output: A string representation of that process, suitable for output.
@@ -337,3 +350,17 @@ cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
   VProc expressionValue <- stringToValue TProc name
   liftIO $ output expressionValue outProc
+
+-- Input: CSPM session.
+--        String representing an event.
+-- Output: The event represented by that string.
+-- Error: If the given string does not resolve to an event.
+cpex_string_to_event :: SessionPtr -> CWString -> Ptr EventPtr -> IO CUInt
+cpex_string_to_event sessPtr inName outEvent = runSession sessPtr $ do
+  name <- liftIO $ peekCWString inName
+  ev <- getEvent name
+  liftIO $ output ev outEvent
+  where
+    getEvent "_tick" = return Tick
+    getEvent "_tau" = return Tau
+    getEvent e = stringToValue TEvent e >>= return . UserEvent

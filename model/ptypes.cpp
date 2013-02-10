@@ -165,6 +165,16 @@ QPair<Process, QString> PBase::opProcCall() const
   return QPair<Process, QString>(_processes.at(0), _text);
 }
 
+QString PBase::displayEventList(QList<Event> events)
+{
+  QStringList ret;
+  foreach (Event e, events)
+  {
+    ret << e.displayText();
+  }
+  return ret.join(", ");
+}
+
 QString PAlphaParallel::toolTip() const
 {
   QString tt("<p>Alphabetized Parallel</p>");
@@ -174,15 +184,85 @@ QString PAlphaParallel::toolTip() const
   QList<QList<Event> > alphas = opAlphabets();
   for (int i = 0; i < procs.count(); i++)
   {
-    QStringList events;
-    for (int j = 0; j < alphas[i].count(); j++)
-    {
-      events << alphas[i][j].displayText();
-    }
     tt += QString(
       "<tr><td valign=\"middle\">%1</td><td valign=\"middle\">%2</td></tr>")
-      .arg(procs[i].displayText().toString(), events.join(", "));
+      .arg(procs[i].displayText().toString(), PBase::displayEventList(alphas[i]));
   }
   tt += "</table>";
   return tt;
+}
+
+QString PException::toolTip() const
+{
+  return QString("<p>Exception</p><p>Throw on events: {%1}</p>")
+    .arg(PBase::displayEventList(opEvents()));
+}
+
+QString PExternalChoice::toolTip() const
+{
+  return "<p>External Choice</p>";
+}
+
+QString PGenParallel::toolTip() const
+{
+  return QString("<p>Generalized Parallel</p><p>Synchronize on events {%1}</p>")
+    .arg(PBase::displayEventList(opEvents()));
+}
+
+QString PHide::toolTip() const
+{
+  return QString("<p>Hide</p><p>{%1}</p>").arg(PBase::displayEventList(opEvents()));
+}
+
+QString PInternalChoice::toolTip() const
+{
+  return "<p>Internal Choice</p>";
+}
+
+QString PInterleave::toolTip() const
+{
+  return "<p>Interleave</p>";
+}
+
+QString PInterrupt::toolTip() const
+{
+  return "<p>Interrupt</p>";
+}
+
+QString PLinkParallel::toolTip() const
+{
+  QString tt("<p>Link Parallel</p><p>{%1}</p>");
+  QStringList maps;
+  QHash<Event, Event> evMap = opEventMap();
+  QHash<Event, Event>::const_iterator it = opEventMap().constBegin();
+  for (it = evMap.constBegin(); it != evMap.constEnd(); it++)
+  {
+    maps << QString("%1 &harr; %2")
+      .arg(it.key().displayText(), it.value().displayText());
+  }
+  return tt.arg(maps.join(", "));
+}
+
+QString PRename::toolTip() const
+{
+  QString tt("<p>Rename</p><p>{%1}</p>");
+  QStringList maps;
+  QHash<Event, Event> evMap = opEventMap();
+  QHash<Event, Event>::const_iterator it = opEventMap().constBegin();
+  for (it = evMap.constBegin(); it != evMap.constEnd(); it++)
+  {
+    maps << QString("%1 &larr; %2")
+      .arg(it.key().displayText(), it.value().displayText());
+  }
+  return tt.arg(maps.join(", "));
+}
+
+QString PSequentialComp::toolTip() const
+{
+  return "<p>Sequential Composition</p>";
+}
+
+QString PSlidingChoice::toolTip() const
+{
+  return "<p>Sliding Choice</p>";
 }

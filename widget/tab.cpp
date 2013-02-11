@@ -60,7 +60,7 @@ void Tab::setupProbe(const Expression & expr)
   splitter->setOrientation(Qt::Horizontal);
   layout()->addWidget(splitter);
 
-  ProcessTree * tree = new ProcessTree(splitter);
+  ProcessTree * tree = new ProcessTree(expr.process().session(), splitter);
   tree->setHeaderHidden(true);
   TransitionModel * m = new TransitionModel(expr.process(), tree);
   tree->setModel(m);
@@ -109,7 +109,7 @@ void Tab::setupInspector(const Expression & expr)
   splitter->setOrientation(Qt::Horizontal);
   layout()->addWidget(splitter);
 
-  ProcessTree * tree = new ProcessTree(this);
+  ProcessTree * tree = new ProcessTree(expr.process().session(), this);
   tree->setHeaderHidden(true);
   InspectModel * m = new InspectModel(expr.process(), tree);
   tree->setModel(m);

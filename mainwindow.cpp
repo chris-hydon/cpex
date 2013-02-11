@@ -174,7 +174,8 @@ bool MainWindow::setTabExpression(Tab * tab, const QString & expr)
   {
     tab->setExpression(e);
     uiTabs->setTabsClosable(true);
-    uiTabs->setTabText(uiTabs->indexOf(tab), expr);
+    // Don't set to expr directly in case expr can be shortened.
+    uiTabs->setTabText(uiTabs->indexOf(tab), tab->exprBox->text());
     return true;
   }
 }
@@ -208,11 +209,12 @@ Tab * MainWindow::currentTab()
   return static_cast<Tab *>(uiTabs->currentWidget());
 }
 
-void MainWindow::newTabFromExpression()
+void MainWindow::newTabFromExpression(const QString & expression)
 {
-  Tab * tab = createTab();
   Tab * oldTab = static_cast<Tab *>(uiTabs->currentWidget());
-  if (!setTabExpression(tab, oldTab->exprBox->text()))
+  Tab * tab = createTab();
+  if (!setTabExpression(tab, expression == QString() ? oldTab->exprBox->text() :
+    expression))
   {
     delete tab;
   }
@@ -223,8 +225,8 @@ void MainWindow::newTabFromExpression()
   }
 }
 
-void MainWindow::setTabFromExpression()
+void MainWindow::setTabFromExpression(const QString & expression)
 {
   Tab * tab = static_cast<Tab *>(uiTabs->currentWidget());
-  setTabExpression(tab, tab->exprBox->text());
+  setTabExpression(tab, expression == QString() ? tab->exprBox->text() : expression);
 }

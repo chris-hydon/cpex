@@ -163,18 +163,7 @@ void SessionModel::itemActivated(const QModelIndex & index)
     }
     else
     {
-      MainWindow * mw = MainWindow::get();
-      Tab * tab = mw->currentTab();
-      if (!tab->expression().isValid())
-      {
-        mw->setTabExpression(tab, item->_displayStr);
-      }
-      else
-      {
-        tab = mw->createTab();
-        mw->setTabExpression(tab, item->_displayStr);
-        mw->setCurrentTab(tab);
-      }
+      MainWindow::get()->setTabFromExpression(item->_displayStr);
     }
   }
 }

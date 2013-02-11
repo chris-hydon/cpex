@@ -6,7 +6,8 @@
 #include <QApplication>
 #include <QClipboard>
 
-ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
+ProcessTree::ProcessTree(const CSPMSession * session, QWidget * parent) :
+  QTreeView(parent), _session(session)
 {
   _model = NULL;
 }
@@ -14,12 +15,36 @@ ProcessTree::ProcessTree(QWidget *parent) : QTreeView(parent)
 void ProcessTree::showContextMenu(const QPoint & pos)
 {
   QMenu menu;
-  menu.addAction("Copy");
+  QAction * copy = menu.addAction("Copy");
+  QAction * probeCT = menu.addAction("Probe");
+  QAction * probeNT = menu.addAction("Probe (New Tab)");
+  QAction * inspectCT = menu.addAction("Inspect");
+  QAction * inspectNT = menu.addAction("Inspect (New Tab)");
+
+  QString data = indexAt(pos).data(Qt::EditRole).toString();
 
   QAction * selectedItem = menu.exec(mapToGlobal(pos));
-  if (selectedItem)
+  if (selectedItem == copy)
   {
-    QApplication::clipboard()->setText(indexAt(pos).data(Qt::EditRole).toString());
+    QApplication::clipboard()->setText(data);
+  }
+  else if (selectedItem == probeCT)
+  {
+    MainWindow::get()->setTabFromExpression(_session->displayName() + ":" + data);
+  }
+  else if (selectedItem == probeNT)
+  {
+    MainWindow::get()->newTabFromExpression(_session->displayName() + ":" + data);
+  }
+  else if (selectedItem == inspectCT)
+  {
+    MainWindow::get()->setTabFromExpression(_session->displayName() + ":inspect:" +
+      data);
+  }
+  else if (selectedItem == inspectNT)
+  {
+    MainWindow::get()->newTabFromExpression(_session->displayName() + ":inspect:" +
+      data);
   }
 }
 

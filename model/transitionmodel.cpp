@@ -123,8 +123,8 @@ QVariant TransitionModel::data(const QModelIndex & index, int role) const
   QString ptext = (role == Qt::DisplayRole ? p->process.displayText().toString() :
     p->process.fullText());
 
-  // Top level process.
-  if (p->cause == Event())
+  // Top level process, or using "edit role".
+  if (p->cause == Event() || role == Qt::EditRole)
   {
     return ptext;
   }

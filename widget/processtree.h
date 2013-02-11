@@ -3,12 +3,13 @@
 
 #include <QAbstractItemModel>
 #include <QTreeView>
+#include "cspmsession.h"
 
 class ProcessTree : public QTreeView
 {
   Q_OBJECT
 public:
-  explicit ProcessTree(QWidget * parent = 0);
+  explicit ProcessTree(const CSPMSession *, QWidget * parent = 0);
 
 signals:
   void itemSelected(const QModelIndex & index);
@@ -21,6 +22,7 @@ protected slots:
 
 private:
   QAbstractItemModel * _model;
+  const CSPMSession * _session;
 };
 
 #endif // PROCESSTREE_H

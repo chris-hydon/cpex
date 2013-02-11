@@ -36,8 +36,8 @@ public slots:
   void actionOpen();
   void newBlankTab();
   void closeTab(int index = -1);
-  void newTabFromExpression();
-  void setTabFromExpression();
+  void newTabFromExpression(const QString & = QString());
+  void setTabFromExpression(const QString & = QString());
 
 signals:
   void fileLoaded(CSPMSession * session);

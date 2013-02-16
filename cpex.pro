@@ -64,3 +64,6 @@ OTHER_FILES += \
     haskell/Cpex/Transitions.hs \
     haskell/Cpex/Foreign.hs \
     haskell/CSPM/Foreign.hs
+
+RESOURCES += \
+    cpex.qrc

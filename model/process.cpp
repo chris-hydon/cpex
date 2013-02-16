@@ -205,6 +205,19 @@ QList<Process> Process::components(bool expandCall) const
   return ret;
 }
 
+bool Process::offersEvent(Event event) const
+{
+  QPair<Event, Process> t;
+  foreach (t, transitions())
+  {
+    if (t.first == event)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 DisplayString Process::displayText() const
 {
   if (_d->displayText == DisplayString())

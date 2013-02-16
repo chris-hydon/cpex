@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/cross.png</file>
+        <file>images/tick.png</file>
+        <file>images/new-tab.png</file>
+    </qresource>
+</RCC>

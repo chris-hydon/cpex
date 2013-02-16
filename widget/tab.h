@@ -13,8 +13,6 @@ public:
   explicit Tab(QWidget * parent = 0);
   Expression expression() const;
   void setExpression(const Expression &);
-  void setupProbe(const Expression &);
-  void setupInspector(const Expression &);
   void updateExprBox();
   QLineEdit * exprBox;
 
@@ -23,6 +21,9 @@ signals:
 public slots:
 
 private:
+  void setupProbe(const Expression &);
+  void setupInspector(const Expression &);
+
   Q_DISABLE_COPY(Tab)
   Expression _expression;
 };

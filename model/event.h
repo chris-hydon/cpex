@@ -19,7 +19,6 @@ public:
   Event();
   Event(const Event &);
   Event(void *);
-  Event(const CSPMSession *, const QString &);
   ~Event();
   bool isValid() const;
   QString displayText() const;

@@ -15,10 +15,13 @@ public:
   const QString & displayName() const;
   bool loadFile(const QString & fileName);
   Process compileExpression(const QString & expression) const;
+  Event stringToEvent(const QString & expression) const;
+  QStringList getErrors() const;
+  QStringList getWarnings() const;
   QStringList procCallNames() const;
   QSet<Process> * procs() const;
   void * getHsPtr() const;
-  bool operator ==(const CSPMSession & other);
+  bool operator ==(const CSPMSession & other) const;
 
 private:
   void * _hsSession;

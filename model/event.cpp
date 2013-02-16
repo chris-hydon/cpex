@@ -40,16 +40,6 @@ Event::Event(void * hsPtr)
   _d = new EventData(hsPtr);
 }
 
-Event::Event(const CSPMSession * session, const QString & text)
-{
-  void * hsPtr = NULL;
-  if (cpex_string_to_event(session->getHsPtr(), (void *) text.toStdWString().c_str(),
-    &hsPtr))
-  {
-    _d = new EventData(hsPtr);
-  }
-}
-
 Event::~Event()
 {
 }

@@ -21,6 +21,7 @@ public:
   ~Process();
   QList<QPair<Event, Process> > transitions() const;
   QList<Process> components(bool expandCall = false) const;
+  bool offersEvent(Event) const;
   DisplayString displayText() const;
   QString fullText() const;
   QString toolTip() const;

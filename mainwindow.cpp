@@ -65,8 +65,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   newBlankTab();
   uiNewTabButton = new QToolButton(uiTabs);
   uiNewTabButton->setAutoRaise(true);
-  uiNewTabButton->setIcon(QIcon(QApplication::style()->standardPixmap(
-    QStyle::SP_ArrowForward))); // TODO: Placeholder icon.
+  uiNewTabButton->setIcon(QIcon(":/images/new-tab.png"));
   uiNewTabButton->setShortcut(QKeySequence::AddTab);
   uiTabs->setCornerWidget(uiNewTabButton);
   uiSplitter->addWidget(uiTabs);

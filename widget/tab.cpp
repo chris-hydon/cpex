@@ -115,6 +115,11 @@ void Tab::setupInspector(const Expression & expr)
   tree->setModel(m);
   layout()->addWidget(tree);
 
+  // "Why not" widget.
+  QLineEdit * why = new QLineEdit(this);
+  why->setPlaceholderText("Type an event here to see why it is/is not offered...");
+  layout()->addWidget(why);
+
   // Horizontal scroll bar. Need to do this after loading the model for some reason.
   tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
   tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
@@ -129,6 +134,10 @@ void Tab::setupInspector(const Expression & expr)
     tree, SIGNAL(customContextMenuRequested(const QPoint &)),
     tree, SLOT(showContextMenu(const QPoint &))
   );
+
+  // "Why not" widget slots. The tree's icon data changes depending on the contents
+  // of the text box.
+  connect(why, SIGNAL(textChanged(QString)), m, SLOT(eventTextChanged(QString)));
 
   // Item delegate.
   tree->setItemDelegate(new ProcessItemDelegate(tree));

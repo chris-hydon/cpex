@@ -14,6 +14,7 @@ public:
   ~InspectItem();
   InspectItem * next(int) const;
   int count() const;
+  bool isLoaded() const;
 
   const Process process;
   const InspectItem * parent;
@@ -26,6 +27,8 @@ private:
 
 class InspectModel : public QAbstractItemModel
 {
+  Q_OBJECT
+
 public:
   InspectModel(const Process &, QObject * parent = 0);
   ~InspectModel();
@@ -36,8 +39,14 @@ public:
   QVariant data(const QModelIndex &, int role = Qt::DisplayRole) const;
   bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
 
+public slots:
+  void eventTextChanged(const QString &);
+
 private:
+  void _dataChanged(const QModelIndex &);
+
   InspectItem * _rootProcess;
+  Event _event;
 };
 
 #endif // INSPECTMODEL_H

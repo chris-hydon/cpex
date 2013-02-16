@@ -67,8 +67,49 @@ bool CSPMSession::loadFile(const QString & fileName)
 Process CSPMSession::compileExpression(const QString & expression) const
 {
   void * proc = NULL;
-  int r = cpex_expression_value(_hsSession, (void *) expression.toStdWString().c_str(), &proc);
+  int r = cpex_expression_value(_hsSession,
+    (void *) expression.toStdWString().c_str(), &proc);
   return (r ? Process::create(proc, this) : Process());
+}
+
+Event CSPMSession::stringToEvent(const QString & expression) const
+{
+  void * event = NULL;
+  int r = cpex_string_to_event(_hsSession,
+    (void *) expression.toStdWString().c_str(), &event);
+  return (r ? Event(event) : Event());
+}
+
+QStringList CSPMSession::getErrors() const
+{
+  wchar_t ** errors = NULL;
+  quint32 count = 0;
+  cspm_session_get_errors(_hsSession, &errors, &count);
+  QStringList ret;
+  for (quint32 i = 0; i < count; i++)
+  {
+    ret << QString::fromWCharArray(errors[i]);
+  }
+
+  free(errors);
+  cspm_session_clear_errors(_hsSession);
+  return ret;
+}
+
+QStringList CSPMSession::getWarnings() const
+{
+  wchar_t ** warns = NULL;
+  quint32 count = 0;
+  cspm_session_get_warnings(_hsSession, &warns, &count);
+  QStringList ret;
+  for (quint32 i = 0; i < count; i++)
+  {
+    ret << QString::fromWCharArray(warns[i]);
+  }
+
+  free(warns);
+  cspm_session_clear_warnings(_hsSession);
+  return ret;
 }
 
 QStringList CSPMSession::procCallNames() const
@@ -122,7 +163,7 @@ void * CSPMSession::getHsPtr() const
   return _hsSession;
 }
 
-bool CSPMSession::operator ==(const CSPMSession & other)
+bool CSPMSession::operator ==(const CSPMSession & other) const
 {
   // Two sessions are equal if they point to the same Haskell session.
   return other._hsSession == _hsSession;

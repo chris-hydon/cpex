@@ -1,5 +1,8 @@
 #include "inspectmodel.h"
 
+#include <QIcon>
+#include "cspmsession.h"
+
 InspectItem::InspectItem(const Process & process, const InspectItem * parent,
   int index) : process(process), parent(parent), index(index), _loaded(false)
 {
@@ -37,6 +40,11 @@ int InspectItem::count() const
     _loaded = true;
   }
   return _next.count();
+}
+
+bool InspectItem::isLoaded() const
+{
+  return _loaded;
 }
 
 InspectModel::InspectModel(const Process & rootProcess, QObject * parent) :
@@ -108,8 +116,10 @@ int InspectModel::columnCount(const QModelIndex &) const
 
 QVariant InspectModel::data(const QModelIndex & index, int role) const
 {
+  static QIcon tick(":/images/tick.png");
+  static QIcon cross(":/images/cross.png");
+
   if (!index.isValid())
-  if ((role != Qt::DisplayRole && role != Qt::EditRole) || !index.isValid())
   {
     return QVariant();
   }
@@ -128,6 +138,18 @@ QVariant InspectModel::data(const QModelIndex & index, int role) const
       if (tt == QString()) return QVariant();
       return tt;
     }
+    case Qt::DecorationRole:
+    {
+      if (!_event.isValid())
+      {
+        return QVariant();
+      }
+      if (p->process.offersEvent(_event))
+      {
+        return tick;
+      }
+      return cross;
+    }
     default:
       return QVariant();
   }
@@ -142,5 +164,32 @@ bool InspectModel::hasChildren(const QModelIndex & parent) const
   else
   {
     return static_cast<InspectItem *>(parent.internalPointer())->count();
+  }
+}
+
+void InspectModel::eventTextChanged(const QString & newText)
+{
+  if (newText == QString())
+  {
+    _event = Event();
+  }
+  else
+  {
+    _event = _rootProcess->next(0)->process.session()->stringToEvent(newText);
+  }
+
+  _dataChanged(index(0, 0));
+}
+
+void InspectModel::_dataChanged(const QModelIndex & idx)
+{
+  InspectItem * item = static_cast<InspectItem *>(idx.internalPointer());
+  if (item->isLoaded())
+  {
+    emit dataChanged(index(0, 0, idx), index(item->count() - 1, 0, idx));
+    for (int i = 0; i < item->count(); i++)
+    {
+      _dataChanged(index(i, 0, idx));
+    }
   }
 }

@@ -359,7 +359,9 @@ cpex_string_to_event :: SessionPtr -> CWString -> Ptr EventPtr -> IO CUInt
 cpex_string_to_event sessPtr inName outEvent = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
   ev <- getEvent name
-  liftIO $ output ev outEvent
+  -- Force evaluation of ev in case an error exists but has not evaluated yet.
+  evaluated <- if ev == ev then return ev else return ev
+  liftIO $ output evaluated outEvent
   where
     getEvent "_tick" = return Tick
     getEvent "_tau" = return Tau

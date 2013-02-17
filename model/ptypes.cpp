@@ -400,6 +400,15 @@ QString PRename::whyEvent(const Event & event) const
     return QObject::tr("%1 has been renamed to %2.").arg(event.displayText(),
       opEventMap().value(event).displayText());
   }
+  else
+  {
+    QList<Event> required = opEventMap().keys(event);
+    if (!required.isEmpty())
+    {
+      return QObject::tr("the component does not offer any of the events renamed to "
+        "this event: %1.").arg(displayEventList(required));
+    }
+  }
   return QObject::tr("the component does not offer the event.");
 }
 

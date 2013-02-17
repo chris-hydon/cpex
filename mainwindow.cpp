@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QMouseEvent>
 #include <QTabBar>
+#include <QTextDocument>
 #include "model/sessionmodel.h"
 #include "widget/tab.h"
 #include "cspmsession.h"
@@ -174,7 +175,17 @@ bool MainWindow::setTabExpression(Tab * tab, const QString & expr)
     tab->setExpression(e);
     uiTabs->setTabsClosable(true);
     // Don't set to expr directly in case expr can be shortened.
-    uiTabs->setTabText(uiTabs->indexOf(tab), tab->exprBox->text());
+    int index = uiTabs->indexOf(tab);
+    QString tabText = tab->exprBox->text();
+    // Wrap in <p> to enable rich text word wrapping.
+    QString toolTipText = QString("<p>") + Qt::escape(tabText) + "</p>";
+    uiTabs->setTabToolTip(index, toolTipText);
+    if (tabText.length() > 25)
+    {
+      tabText.truncate(20);
+      tabText += QChar(0x2026);
+    }
+    uiTabs->setTabText(index, tabText);
     return true;
   }
 }

@@ -266,3 +266,164 @@ QString PSlidingChoice::toolTip() const
 {
   return "<p>Sliding Choice</p>";
 }
+
+QString PAlphaParallel::whyEvent(const Event & event) const
+{
+  switch (event.type())
+  {
+    case Event::Tau:
+      return QObject::tr("none of the components offer a %1.").arg(QChar(0x03c4));
+    case Event::Tick:
+      return QObject::tr("not all of the components offer a %1.").arg(QChar(0x2713));
+    default:
+      ;
+  }
+
+  QList<Process> components = opProcesses();
+  QList<QList<Event> > alphabets = opAlphabets();
+  QStringList needed;
+  for (int i = 0; i < components.count(); i++)
+  {
+    if (alphabets[i].contains(event))
+    {
+      needed << QString::number(i + 1);
+    }
+  }
+
+  if (needed.count() == 0)
+  {
+    return QObject::tr("the event is not in the alphabet for any component.");
+  }
+  return QObject::tr("the event is not offered by the required component(s): %1", "",
+    needed.count()).arg(needed.join(", "));
+}
+
+QString PException::whyEvent(const Event &) const
+{
+  return QObject::tr("the main process (component 1) does not offer the event.");
+}
+
+QString PExternalChoice::whyEvent(const Event &) const
+{
+  return QObject::tr("none of the components offer the event.");
+}
+
+QString PGenParallel::whyEvent(const Event & event) const
+{
+  if (opEvents().contains(event))
+  {
+    return QObject::tr("the event is in the interface, and not all of the "
+      "components offer it.");
+  }
+  return QObject::tr("none of the components offer the event.");
+}
+
+QString PHide::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tau)
+  {
+    return QObject::tr("of the events to be hidden, none of them are offered.");
+  }
+  else if (opEvents().contains(event))
+  {
+    return QObject::tr("the event is hidden here.");
+  }
+  return QObject::tr("the component process does not offer the event.");
+}
+
+QString PInternalChoice::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tau)
+  {
+    return QObject::tr("there are no components.");
+  }
+  return QObject::tr("internal choice only offers %1 events.").arg(QChar(0x03c4));
+}
+
+QString PInterleave::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tick)
+  {
+    return QObject::tr("not all components offer a %1.").arg(QChar(0x2713));
+  }
+  return QObject::tr("none of the components offer the event.");
+}
+
+QString PInterrupt::whyEvent(const Event &) const
+{
+  return QObject::tr("neither of the components offers the event.");
+}
+
+QString PLinkParallel::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tau)
+  {
+    return QObject::tr("neither of the components offer a %1, and none of the "
+      "synchronized event pairs are offered.").arg(QChar(0x03c4));
+  }
+  else if (event.type() == Event::Tick)
+  {
+    return QObject::tr("%1 is not offered by both components.").arg(QChar(0x2713));
+  }
+  else if (opProcess2().first.offersEvent(event) ||
+    opProcess2().second.offersEvent(event))
+  {
+    return QObject::tr("the event is hidden by the link parallel operation.");
+  }
+  return QObject::tr("neither of the components offers the event.");
+}
+
+QString POperator::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tau && opProcess().offersEvent(event))
+  {
+    return QObject::tr("all %1 events have been removed by the chase operator.")
+      .arg(QChar(0x03c4));
+  }
+  return QObject::tr("the component does not offer the event.");
+}
+
+QString PPrefix::whyEvent(const Event &) const
+{
+  return QObject::tr("the event offered is %1.").arg(opEvent().displayText());
+}
+
+QString PProcCall::whyEvent(const Event &) const
+{
+  return QObject::tr("the component does not offer the event.");
+}
+
+QString PRename::whyEvent(const Event & event) const
+{
+  if (opEventMap().contains(event))
+  {
+    return QObject::tr("%1 has been renamed to %2.").arg(event.displayText(),
+      opEventMap().value(event).displayText());
+  }
+  return QObject::tr("the component does not offer the event.");
+}
+
+QString PSequentialComp::whyEvent(const Event & event) const
+{
+  switch (event.type())
+  {
+    case Event::Tau:
+      return QObject::tr("the component offers neither a %1 nor a %2.")
+        .arg(QChar(0x03c4), QChar(0x2713));
+    case Event::Tick:
+      return QObject::tr("the %1 event is hidden by the sequential composition "
+        "operation.").arg(QChar(0x2713));
+    default:
+      return QObject::tr("the first component does not offer the event.");
+  }
+}
+
+QString PSlidingChoice::whyEvent(const Event & event) const
+{
+  if (event.type() == Event::Tau)
+  {
+    return QObject::tr("there is a bug in the program. Sliding choice should "
+      "ALWAYS offer %1.").arg(QChar(0x03c4));
+  }
+  return QObject::tr("the first component does not offer the event.");
+}

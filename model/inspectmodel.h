@@ -39,6 +39,9 @@ public:
   QVariant data(const QModelIndex &, int role = Qt::DisplayRole) const;
   bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
 
+signals:
+  void eventChanged(const Event &);
+
 public slots:
   void eventTextChanged(const QString &);
 

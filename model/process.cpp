@@ -247,6 +247,17 @@ QString Process::toolTip() const
   return _d->backend->toolTip();
 }
 
+QString Process::whyEvent(const Event & event) const
+{
+  if (!event.isValid())
+  {
+    return QObject::tr("The event given is not valid.");
+  }
+  return offersEvent(event) ? QObject::tr("This process offers the event.") :
+    QObject::tr("This process does not offer the event because %1")
+    .arg(_d->backend->whyEvent(event));
+}
+
 bool Process::isValid() const
 {
   return _d;

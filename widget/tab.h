@@ -1,10 +1,13 @@
 #ifndef TAB_H
 #define TAB_H
 
-#include <QLineEdit>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
+#include <QModelIndex>
 #include <QString>
 #include <QWidget>
 #include "model/expression.h"
+#include "widget/processtree.h"
 
 class Tab : public QWidget
 {
@@ -19,6 +22,8 @@ public:
 signals:
 
 public slots:
+  void displayEventDetails(const QModelIndex &);
+  void handleInspectorEventChanged(const Event &);
 
 private:
   void setupProbe(const Expression &);
@@ -26,6 +31,10 @@ private:
 
   Q_DISABLE_COPY(Tab)
   Expression _expression;
+  ProcessTree * _tree;
+  Event _event;
+  QLabel * _inspectorWhyDetails;
+  QLineEdit * _inspectorWhy;
 };
 
 #endif // TAB_H

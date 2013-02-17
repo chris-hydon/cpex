@@ -179,6 +179,7 @@ void InspectModel::eventTextChanged(const QString & newText)
   }
 
   _dataChanged(index(0, 0));
+  emit eventChanged(_event);
 }
 
 void InspectModel::_dataChanged(const QModelIndex & idx)

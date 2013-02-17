@@ -10,7 +10,6 @@
 #include "model/inspectmodel.h"
 #include "model/process.h"
 #include "model/transitionmodel.h"
-#include "widget/processtree.h"
 #include "widget/tracelistwidget.h"
 #include "programstate.h"
 
@@ -60,14 +59,14 @@ void Tab::setupProbe(const Expression & expr)
   splitter->setOrientation(Qt::Horizontal);
   layout()->addWidget(splitter);
 
-  ProcessTree * tree = new ProcessTree(expr.process().session(), splitter);
-  tree->setHeaderHidden(true);
-  TransitionModel * m = new TransitionModel(expr.process(), tree);
-  tree->setModel(m);
+  _tree = new ProcessTree(expr.process().session(), splitter);
+  _tree->setHeaderHidden(true);
+  TransitionModel * m = new TransitionModel(expr.process(), _tree);
+  _tree->setModel(m);
 
   TraceListWidget * trace = new TraceListWidget(splitter);
 
-  splitter->addWidget(tree);
+  splitter->addWidget(_tree);
   splitter->addWidget(trace);
 
   QList<int> defaultSizes;
@@ -75,32 +74,32 @@ void Tab::setupProbe(const Expression & expr)
   splitter->setSizes(defaultSizes);
 
   connect(
-    tree->selectionModel(),
+    _tree->selectionModel(),
     SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
-    tree, SLOT(selectionChanged())
+    _tree, SLOT(selectionChanged())
   );
   connect(
-    tree, SIGNAL(itemSelected(QModelIndex)),
+    _tree, SIGNAL(itemSelected(QModelIndex)),
     trace, SLOT(setTraces(QModelIndex))
   );
 
   // Horizontal scroll bar. Need to do this after loading the model for some reason.
-  tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-  tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
-  tree->header()->setStretchLastSection(false);
+  _tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+  _tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
+  _tree->header()->setStretchLastSection(false);
 
   // Expand the root.
-  tree->expand(m->index(0, 0, tree->rootIndex()));
+  _tree->expand(m->index(0, 0, _tree->rootIndex()));
 
   // Context menu.
-  tree->setContextMenuPolicy(Qt::CustomContextMenu);
+  _tree->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(
-    tree, SIGNAL(customContextMenuRequested(const QPoint &)),
-    tree, SLOT(showContextMenu(const QPoint &))
+    _tree, SIGNAL(customContextMenuRequested(const QPoint &)),
+    _tree, SLOT(showContextMenu(const QPoint &))
   );
 
   // Item delegate.
-  tree->setItemDelegate(new ProcessItemDelegate(tree));
+  _tree->setItemDelegate(new ProcessItemDelegate(_tree));
 }
 
 void Tab::setupInspector(const Expression & expr)
@@ -109,43 +108,104 @@ void Tab::setupInspector(const Expression & expr)
   splitter->setOrientation(Qt::Horizontal);
   layout()->addWidget(splitter);
 
-  ProcessTree * tree = new ProcessTree(expr.process().session(), this);
-  tree->setHeaderHidden(true);
-  InspectModel * m = new InspectModel(expr.process(), tree);
-  tree->setModel(m);
-  layout()->addWidget(tree);
+  _tree = new ProcessTree(expr.process().session(), this);
+  _tree->setHeaderHidden(true);
+  InspectModel * m = new InspectModel(expr.process(), _tree);
+  _tree->setModel(m);
+  layout()->addWidget(_tree);
 
   // "Why not" widget.
-  QLineEdit * why = new QLineEdit(this);
-  why->setPlaceholderText("Type an event here to see why it is/is not offered...");
-  layout()->addWidget(why);
+  _inspectorWhy = new QLineEdit(this);
+  _inspectorWhy->setPlaceholderText(
+    tr("Type an event here to see why it is/is not offered..."));
+  layout()->addWidget(_inspectorWhy);
 
   // Horizontal scroll bar. Need to do this after loading the model for some reason.
-  tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
-  tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
-  tree->header()->setStretchLastSection(false);
+  _tree->header()->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+  _tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
+  _tree->header()->setStretchLastSection(false);
 
   // Expand the root.
-  tree->expand(m->index(0, 0, tree->rootIndex()));
+  _tree->expand(m->index(0, 0, _tree->rootIndex()));
+
+  _inspectorWhyDetails = new QLabel(this);
+  _inspectorWhyDetails->setWordWrap(true);
+  _inspectorWhyDetails->setVisible(false);
+  layout()->addWidget(_inspectorWhyDetails);
 
   // Context menu.
-  tree->setContextMenuPolicy(Qt::CustomContextMenu);
+  _tree->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(
-    tree, SIGNAL(customContextMenuRequested(const QPoint &)),
-    tree, SLOT(showContextMenu(const QPoint &))
+    _tree, SIGNAL(customContextMenuRequested(const QPoint &)),
+    _tree, SLOT(showContextMenu(const QPoint &))
   );
 
   // "Why not" widget slots. The tree's icon data changes depending on the contents
   // of the text box.
-  connect(why, SIGNAL(textChanged(QString)), m, SLOT(eventTextChanged(QString)));
+  connect(
+    _inspectorWhy, SIGNAL(textChanged(QString)),
+    m, SLOT(eventTextChanged(QString))
+  );
+  connect(
+    _tree->selectionModel(),
+    SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+    _tree, SLOT(selectionChanged())
+  );
+  connect(
+    _tree, SIGNAL(itemSelected(const QModelIndex &)),
+    this, SLOT(displayEventDetails(const QModelIndex &))
+  );
+  connect(
+    m, SIGNAL(eventChanged(const Event)),
+    this, SLOT(handleInspectorEventChanged(const Event &)));
 
   // Item delegate.
-  tree->setItemDelegate(new ProcessItemDelegate(tree));
+  _tree->setItemDelegate(new ProcessItemDelegate(_tree));
 }
-
 
 void Tab::updateExprBox()
 {
   exprBox->setText(_expression.text(ProgramState::getSessions().count() > 1,
     _expression.mode() != Expression::Probe));
+}
+
+void Tab::displayEventDetails(const QModelIndex & idx)
+{
+  QModelIndex index = idx;
+  if (!index.isValid())
+  {
+    QModelIndexList selected = _tree->selectionModel()->selectedIndexes();
+    if (selected.count() > 0)
+    {
+      index = selected[0];
+    }
+  }
+
+  // No details if the event is invalid and no process is selected, or there is
+  // nothing typed in.
+  if ((!index.isValid() && !_event.isValid()) || _inspectorWhy->text() == QString())
+  {
+    _inspectorWhyDetails->setVisible(false);
+    return;
+  }
+
+  // If there is no process selected, tell the user to select one, otherwise proceed
+  // as normal.
+  if (!index.isValid())
+  {
+    _inspectorWhyDetails->setText(tr("Select an item for details."));
+  }
+  else
+  {
+    Process process = static_cast<InspectItem *>(index.internalPointer())->process;
+    _inspectorWhyDetails->setText(process.whyEvent(_event));
+  }
+
+  _inspectorWhyDetails->setVisible(true);
+}
+
+void Tab::handleInspectorEventChanged(const Event & ev)
+{
+  _event = ev;
+  displayEventDetails(QModelIndex());
 }

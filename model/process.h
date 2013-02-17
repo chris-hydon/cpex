@@ -25,6 +25,7 @@ public:
   DisplayString displayText() const;
   QString fullText() const;
   QString toolTip() const;
+  QString whyEvent(const Event &) const;
   bool isValid() const;
   const CSPMSession * session() const;
   bool operator ==(const Process & other) const;

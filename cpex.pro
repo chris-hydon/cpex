@@ -31,6 +31,7 @@ SOURCES += \
     model/expression.cpp \
     model/inspectmodel.cpp \
     model/process.cpp \
+    model/processitem.cpp \
     model/ptypes.cpp \
     model/sessionmodel.cpp \
     model/transitionmodel.cpp \
@@ -49,6 +50,7 @@ HEADERS += \
     model/expression.h \
     model/inspectmodel.h \
     model/process.h \
+    model/processitem.h \
     model/ptypes.h \
     model/sessionmodel.h \
     model/transitionmodel.h \

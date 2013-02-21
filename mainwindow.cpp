@@ -162,32 +162,22 @@ void MainWindow::actionOpen()
   }
 }
 
-bool MainWindow::setTabExpression(Tab * tab, const QString & expr)
+void MainWindow::setTabExpression(Tab * tab, const Expression & expr)
 {
-  Expression e(expr);
-  if (!e.isValid())
+  tab->setExpression(expr);
+  uiTabs->setTabsClosable(true);
+  int index = uiTabs->indexOf(tab);
+  QString tabText = tab->exprBox->text();
+  // Wrap in <p> to enable rich text word wrapping.
+  QString toolTipText = QString("<p>") + Qt::escape(tabText) + "</p>";
+  uiTabs->setTabToolTip(index, toolTipText);
+  // Truncate and elide to stop tabs from getting too wide.
+  if (tabText.length() > 25)
   {
-    uiStatus->showMessage(tr("Invalid expression for the current file."), 5000);
-    return false;
+    tabText.truncate(20);
+    tabText += QChar(0x2026);
   }
-  else
-  {
-    tab->setExpression(e);
-    uiTabs->setTabsClosable(true);
-    // Don't set to expr directly in case expr can be shortened.
-    int index = uiTabs->indexOf(tab);
-    QString tabText = tab->exprBox->text();
-    // Wrap in <p> to enable rich text word wrapping.
-    QString toolTipText = QString("<p>") + Qt::escape(tabText) + "</p>";
-    uiTabs->setTabToolTip(index, toolTipText);
-    if (tabText.length() > 25)
-    {
-      tabText.truncate(20);
-      tabText += QChar(0x2026);
-    }
-    uiTabs->setTabText(index, tabText);
-    return true;
-  }
+  uiTabs->setTabText(index, tabText);
 }
 
 void MainWindow::setCurrentTab(Tab * tab)
@@ -219,24 +209,42 @@ Tab * MainWindow::currentTab()
   return static_cast<Tab *>(uiTabs->currentWidget());
 }
 
-void MainWindow::newTabFromExpression(const QString & expression)
+void MainWindow::newTabFromExpression(const Expression & expression)
 {
   Tab * oldTab = static_cast<Tab *>(uiTabs->currentWidget());
+  Expression expr = expression;
+  if (!expr.isValid())
+  {
+    expr = Expression(oldTab->exprBox->text());
+    if (!expr.isValid())
+    {
+      _invalidExpressionMessage();
+      return;
+    }
+  }
   Tab * tab = createTab();
-  if (!setTabExpression(tab, expression == QString() ? oldTab->exprBox->text() :
-    expression))
-  {
-    delete tab;
-  }
-  else
-  {
-    setCurrentTab(tab);
-    oldTab->updateExprBox();
-  }
+  setTabExpression(tab, expr);
+  setCurrentTab(tab);
+  oldTab->updateExprBox();
 }
 
-void MainWindow::setTabFromExpression(const QString & expression)
+void MainWindow::setTabFromExpression(const Expression & expression)
 {
   Tab * tab = static_cast<Tab *>(uiTabs->currentWidget());
-  setTabExpression(tab, expression == QString() ? tab->exprBox->text() : expression);
+  Expression expr = expression;
+  if (!expr.isValid())
+  {
+    expr = Expression(tab->exprBox->text());
+    if (!expr.isValid())
+    {
+      _invalidExpressionMessage();
+      return;
+    }
+  }
+  setTabExpression(tab, expr);
+}
+
+void MainWindow::_invalidExpressionMessage()
+{
+  uiStatus->showMessage(tr("Invalid expression for the current file."), 5000);
 }

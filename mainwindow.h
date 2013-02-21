@@ -15,6 +15,7 @@
 
 #include <QMainWindow>
 #include <QShortcut>
+#include "model/expression.h"
 #include "cspmsession.h"
 
 class Tab;
@@ -28,7 +29,7 @@ public:
   ~MainWindow();
   static MainWindow * get();
   Tab * createTab();
-  bool setTabExpression(Tab *, const QString &);
+  void setTabExpression(Tab *, const Expression &);
   void setCurrentTab(Tab *);
   Tab * currentTab();
 
@@ -36,13 +37,15 @@ public slots:
   void actionOpen();
   void newBlankTab();
   void closeTab(int index = -1);
-  void newTabFromExpression(const QString & = QString());
-  void setTabFromExpression(const QString & = QString());
+  void newTabFromExpression(const Expression & = Expression());
+  void setTabFromExpression(const Expression & = Expression());
 
 signals:
   void fileLoaded(CSPMSession * session);
 
 private:
+  void _invalidExpressionMessage();
+
   static MainWindow * window;
 
   // UI elements

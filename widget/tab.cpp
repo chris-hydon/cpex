@@ -197,7 +197,7 @@ void Tab::displayEventDetails(const QModelIndex & idx)
   }
   else
   {
-    Process process = static_cast<InspectItem *>(index.internalPointer())->process;
+    Process process = static_cast<ProcessItem *>(index.internalPointer())->process();
     _inspectorWhyDetails->setText(process.whyEvent(_event));
   }
 

@@ -145,7 +145,7 @@ cpex_event_equal inEv1 inEv2 = do
 cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
 cpex_process_string sessPtr inProc inBrief outString = runSession sessPtr $ do
   doc <- liftIO (input inProc) >>= (if inBrief then M.prettyPrintBrief else M.prettyPrint)
-  liftIO $ (newCWString . show) doc >>= poke outString
+  liftIO $ (newCWString . (renderStyle style{mode=LeftMode})) doc >>= poke outString
 
 -- Input: Two processes.
 -- Returns: True if the input processes are equal, false if not.

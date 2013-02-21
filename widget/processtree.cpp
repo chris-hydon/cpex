@@ -1,5 +1,6 @@
 #include "processtree.h"
 
+#include "model/processitem.h"
 #include "mainwindow.h"
 #include "programstate.h"
 
@@ -21,30 +22,32 @@ void ProcessTree::showContextMenu(const QPoint & pos)
   QAction * inspectCT = menu.addAction("Inspect");
   QAction * inspectNT = menu.addAction("Inspect (New Tab)");
 
-  QString data = indexAt(pos).data(Qt::EditRole).toString();
+  Process proc = static_cast<ProcessItem *>(indexAt(pos).internalPointer())->process();
 
   QAction * selectedItem = menu.exec(mapToGlobal(pos));
   if (selectedItem == copy)
   {
-    QApplication::clipboard()->setText(data);
+    QApplication::clipboard()->setText(indexAt(pos).data(Qt::EditRole).toString());
   }
   else if (selectedItem == probeCT)
   {
-    MainWindow::get()->setTabFromExpression(_session->displayName() + ":" + data);
+    Expression e(proc, Expression::Probe);
+    MainWindow::get()->setTabFromExpression(e);
   }
   else if (selectedItem == probeNT)
   {
-    MainWindow::get()->newTabFromExpression(_session->displayName() + ":" + data);
+    Expression e(proc, Expression::Probe);
+    MainWindow::get()->newTabFromExpression(e);
   }
   else if (selectedItem == inspectCT)
   {
-    MainWindow::get()->setTabFromExpression(_session->displayName() + ":inspect:" +
-      data);
+    Expression e(proc, Expression::Inspect);
+    MainWindow::get()->setTabFromExpression(e);
   }
   else if (selectedItem == inspectNT)
   {
-    MainWindow::get()->newTabFromExpression(_session->displayName() + ":inspect:" +
-      data);
+    Expression e(proc, Expression::Inspect);
+    MainWindow::get()->newTabFromExpression(e);
   }
 }
 

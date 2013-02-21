@@ -1,10 +1,11 @@
 #ifndef TRANSITIONMODEL_H
 #define TRANSITIONMODEL_H
 
-#include "process.h"
 #include <QAbstractItemModel>
+#include "process.h"
+#include "processitem.h"
 
-class TransitionItem
+class TransitionItem : public ProcessItem
 {
 public:
   TransitionItem(const Process &, const TransitionItem *, const Event &, int);
@@ -12,18 +13,14 @@ public:
   // two TransitionItems, one the parent of the next, so that the root may be
   // visible.
   TransitionItem(const Process &);
-  ~TransitionItem();
-  TransitionItem * next(int) const;
-  int count() const;
+  Event cause() const;
+  const TransitionItem * parent() const;
 
-  const Process process;
-  const TransitionItem * parent;
-  const Event cause;
-  const int index;
+protected:
+  virtual void _load() const;
 
 private:
-  mutable QList<TransitionItem *> _next;
-  mutable bool _loaded;
+  const Event _cause;
 };
 
 class TransitionModel : public QAbstractItemModel

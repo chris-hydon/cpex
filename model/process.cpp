@@ -236,7 +236,7 @@ QString Process::fullText() const
   {
     wchar_t * str = NULL;
     cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, false, &str);
-    _d->fullText = QString::fromWCharArray(str).replace(QRegExp("\\s+"), " ");
+    _d->fullText = QString::fromWCharArray(str);
     free(str);
   }
   return _d->fullText;

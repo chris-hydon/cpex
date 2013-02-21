@@ -163,7 +163,7 @@ void SessionModel::itemActivated(const QModelIndex & index)
     }
     else
     {
-      MainWindow::get()->setTabFromExpression(item->_displayStr);
+      MainWindow::get()->setTabFromExpression(Expression(item->_displayStr));
     }
   }
 }

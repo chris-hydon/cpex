@@ -13,13 +13,13 @@ void TraceListWidget::setTraces(const QModelIndex & index)
 {
   const TransitionItem * proc = static_cast<TransitionItem *>(index.internalPointer());
   QStringList labels;
-  while (proc->parent != NULL)
+  while (proc->parent() != NULL)
   {
-    if (proc->cause.type() != Event::Tau)
+    if (proc->cause().type() != Event::Tau)
     {
-      labels.prepend(proc->cause.displayText());
+      labels.prepend(proc->cause().displayText());
     }
-    proc = proc->parent;
+    proc = proc->parent();
   }
 
   _model->setStringList(labels);

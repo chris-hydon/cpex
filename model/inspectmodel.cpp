@@ -4,47 +4,29 @@
 #include "cspmsession.h"
 
 InspectItem::InspectItem(const Process & process, const InspectItem * parent,
-  int index) : process(process), parent(parent), index(index), _loaded(false)
+  int index) : ProcessItem(process, parent, index)
 {
 }
 
-InspectItem::InspectItem(const Process & process) : parent(NULL), index(0),
-  _loaded(true)
+InspectItem::InspectItem(const Process & process) : ProcessItem(Process(), NULL, 0)
 {
   _next.append(new InspectItem(process, this, 0));
+  _loaded = true;
 }
 
-InspectItem::~InspectItem()
+const InspectItem * InspectItem::parent() const
 {
-  while (!_next.isEmpty())
+  return static_cast<const InspectItem *>(_parentItem());
+}
+
+void InspectItem::_load() const
+{
+  QList<Process> components = process().components(true);
+  for (int i = 0; i < components.count(); i++)
   {
-    delete _next.takeFirst();
+    _next.append(new InspectItem(components.at(i), this, i));
   }
-}
-
-InspectItem * InspectItem::next(int index) const
-{
-  return _next.at(index);
-}
-
-int InspectItem::count() const
-{
-  // Lazy-load it here, since count() must always be called before next.
-  if (!_loaded && process.isValid())
-  {
-    QList<Process> components = process.components(true);
-    for (int i = 0; i < components.count(); i++)
-    {
-      _next.append(new InspectItem(components.at(i), this, i));
-    }
-    _loaded = true;
-  }
-  return _next.count();
-}
-
-bool InspectItem::isLoaded() const
-{
-  return _loaded;
+  _loaded = true;
 }
 
 InspectModel::InspectModel(const Process & rootProcess, QObject * parent) :
@@ -85,14 +67,14 @@ QModelIndex InspectModel::parent(const QModelIndex & index) const
   }
 
   const InspectItem * parentItem =
-    static_cast<InspectItem *>(index.internalPointer())->parent;
+    static_cast<InspectItem *>(index.internalPointer())->parent();
 
   if (parentItem == _rootProcess)
   {
     return QModelIndex();
   }
 
-  return createIndex(parentItem->index, 0, (void *) parentItem);
+  return createIndex(parentItem->index(), 0, (void *) parentItem);
 }
 
 int InspectModel::rowCount(const QModelIndex & parent) const
@@ -129,12 +111,12 @@ QVariant InspectModel::data(const QModelIndex & index, int role) const
   switch (role)
   {
     case Qt::DisplayRole:
-      return p->process.displayText().toString();
+      return p->process().displayText().toString();
     case Qt::EditRole:
-      return p->process.fullText();
+      return p->process().fullText();
     case Qt::ToolTipRole:
     {
-      QString tt = p->process.toolTip();
+      QString tt = p->process().toolTip();
       if (tt == QString()) return QVariant();
       return tt;
     }
@@ -144,7 +126,7 @@ QVariant InspectModel::data(const QModelIndex & index, int role) const
       {
         return QVariant();
       }
-      if (p->process.offersEvent(_event))
+      if (p->process().offersEvent(_event))
       {
         return tick;
       }
@@ -175,7 +157,7 @@ void InspectModel::eventTextChanged(const QString & newText)
   }
   else
   {
-    _event = _rootProcess->next(0)->process.session()->stringToEvent(newText);
+    _event = _rootProcess->next(0)->process().session()->stringToEvent(newText);
   }
 
   _dataChanged(index(0, 0));

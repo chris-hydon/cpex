@@ -4,45 +4,37 @@
 #include "programstate.h"
 
 TransitionItem::TransitionItem(const Process & process, const TransitionItem * parent,
-  const Event & cause, int index) : process(process), parent(parent),
-  cause(cause), index(index), _loaded(false)
+  const Event & cause, int index) : ProcessItem(process, parent, index), _cause(cause)
 {
 }
 
-TransitionItem::TransitionItem(const Process & process) : parent(NULL), index(0),
-  _loaded(true)
+TransitionItem::TransitionItem(const Process & process) :
+  ProcessItem(Process(), NULL, 0)
 {
   _next.append(new TransitionItem(process, this, Event(), 0));
+  _loaded = true;
 }
 
-TransitionItem::~TransitionItem()
+Event TransitionItem::cause() const
 {
-  while (!_next.isEmpty())
+  return _cause;
+}
+
+const TransitionItem * TransitionItem::parent() const
+{
+  return static_cast<const TransitionItem *>(_parentItem());
+}
+
+void TransitionItem::_load() const
+{
+  QList<QPair<Event, Process> > transitions = process().transitions();
+  QPair<Event, Process> pair;
+  for (int i = 0; i < transitions.count(); i++)
   {
-    delete _next.takeFirst();
+    pair = transitions.at(i);
+    _next.append(new TransitionItem(pair.second, this, pair.first, i));
   }
-}
-
-TransitionItem * TransitionItem::next(int index) const
-{
-  return _next.at(index);
-}
-
-int TransitionItem::count() const
-{
-  // Lazy-load it here, since count() must always be called before next.
-  if (!_loaded && process.isValid())
-  {
-    QList<QPair<Event, Process> > transitions = process.transitions();
-    QPair<Event, Process> pair;
-    for (int i = 0; i < transitions.count(); i++)
-    {
-      pair = transitions.at(i);
-      _next.append(new TransitionItem(pair.second, this, pair.first, i));
-    }
-    _loaded = true;
-  }
-  return _next.count();
+  _loaded = true;
 }
 
 TransitionModel::TransitionModel(const Process & rootProcess, QObject * parent) :
@@ -83,14 +75,14 @@ QModelIndex TransitionModel::parent(const QModelIndex & index) const
   }
 
   const TransitionItem * parentItem =
-    static_cast<TransitionItem *>(index.internalPointer())->parent;
+    static_cast<TransitionItem *>(index.internalPointer())->parent();
 
   if (parentItem == _rootProcess)
   {
     return QModelIndex();
   }
 
-  return createIndex(parentItem->index, 0, (void *) parentItem);
+  return createIndex(parentItem->index(), 0, (void *) parentItem);
 }
 
 int TransitionModel::rowCount(const QModelIndex & parent) const
@@ -120,17 +112,17 @@ QVariant TransitionModel::data(const QModelIndex & index, int role) const
   }
 
   const TransitionItem * p = static_cast<TransitionItem *>(index.internalPointer());
-  QString ptext = (role == Qt::DisplayRole ? p->process.displayText().toString() :
-    p->process.fullText());
+  QString ptext = (role == Qt::DisplayRole ? p->process().displayText().toString() :
+    p->process().fullText());
 
   // Top level process, or using "edit role".
-  if (p->cause == Event() || role == Qt::EditRole)
+  if (p->cause() == Event() || role == Qt::EditRole)
   {
     return ptext;
   }
   else
   {
-    return QString("%1: %2").arg(p->cause.displayText(), ptext);
+    return QString("%1: %2").arg(p->cause().displayText(), ptext);
   }
 }
 
@@ -142,6 +134,7 @@ bool TransitionModel::hasChildren(const QModelIndex & parent) const
   }
   else
   {
-    return static_cast<TransitionItem *>(parent.internalPointer())->process.transitions().count();
+    return static_cast<TransitionItem *>(parent.internalPointer())
+      ->process().transitions().count();
   }
 }

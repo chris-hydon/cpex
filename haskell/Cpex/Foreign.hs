@@ -32,6 +32,9 @@ foreign export ccall
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 foreign export ccall
+  cpex_events_string :: SessionPtr -> Ptr EventPtr -> CUInt -> Ptr CWString ->
+    IO CUInt
+foreign export ccall
   cpex_event_equal :: EventPtr -> EventPtr -> IO Bool
 foreign export ccall
   cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
@@ -131,6 +134,16 @@ cpex_event_string inEvent outName outType = do
   where etype Tau = 1
         etype Tick = 2
         etype _ = 0
+
+-- Input: Session pointer.
+--        List of events.
+--        Size of that list.
+-- Output: A string representation of that list, shortened wherever possible.
+cpex_events_string :: SessionPtr -> Ptr EventPtr -> CUInt -> Ptr CWString -> IO CUInt
+cpex_events_string sess inEvents inCount outName = runSession sess $ do
+  events <- liftIO $ peekArray (fromIntegral inCount) inEvents >>= mapM deRefStablePtr
+  doc <- M.prettyPrint events
+  liftIO $ (newCWString . (renderStyle style{mode=LeftMode})) doc >>= poke outName
 
 -- Input: Two events.
 -- Returns: True if the input events are equal, false if not.

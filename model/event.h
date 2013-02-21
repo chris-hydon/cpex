@@ -26,6 +26,10 @@ public:
   bool operator ==(const Event &) const;
   Event & operator =(const Event &);
 
+  // Returns an array of haskell pointers to the list of events. The memory must be
+  // deallocated with free() manually.
+  static void ** hsList(QList<Event>);
+
 private:
   QExplicitlySharedDataPointer<EventData> _d;
 

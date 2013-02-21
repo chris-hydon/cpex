@@ -2,6 +2,7 @@
 
 #include <QStringList>
 #include "haskell/Cpex/Foreign_stub.h"
+#include "cspmsession.h"
 
 PBase::PBase(void * hsPtr, const CSPMSession * session, PType type) : type(type),
   _hsPtr(hsPtr), _session(session), _loadedEvent(false), _loadedProcess(false)
@@ -165,14 +166,15 @@ QPair<Process, QString> PBase::opProcCall() const
   return QPair<Process, QString>(_processes.at(0), _text);
 }
 
-QString PBase::displayEventList(QList<Event> events)
+QString PBase::displayEventList(QList<Event> events) const
 {
-  QStringList ret;
-  foreach (Event e, events)
-  {
-    ret << e.displayText();
-  }
-  return ret.join(", ");
+  void ** evs = Event::hsList(events);
+  wchar_t * str = NULL;
+  cpex_events_string(_session->getHsPtr(), evs, events.count(), &str);
+  QString ret = QString::fromWCharArray(str);
+  free(evs);
+  free(str);
+  return ret;
 }
 
 QString PAlphaParallel::toolTip() const
@@ -186,7 +188,7 @@ QString PAlphaParallel::toolTip() const
   {
     tt += QString(
       "<tr><td valign=\"middle\">%1</td><td valign=\"middle\">%2</td></tr>")
-      .arg(procs[i].displayText().toString(), PBase::displayEventList(alphas[i]));
+      .arg(procs[i].displayText().toString(), displayEventList(alphas[i]));
   }
   tt += "</table>";
   return tt;
@@ -194,8 +196,8 @@ QString PAlphaParallel::toolTip() const
 
 QString PException::toolTip() const
 {
-  return QString("<p>Exception</p><p>Throw on events: {%1}</p>")
-    .arg(PBase::displayEventList(opEvents()));
+  return QString("<p>Exception</p><p>Throw on events: %1</p>")
+    .arg(displayEventList(opEvents()));
 }
 
 QString PExternalChoice::toolTip() const
@@ -205,13 +207,13 @@ QString PExternalChoice::toolTip() const
 
 QString PGenParallel::toolTip() const
 {
-  return QString("<p>Generalized Parallel</p><p>Synchronize on events {%1}</p>")
-    .arg(PBase::displayEventList(opEvents()));
+  return QString("<p>Generalized Parallel</p><p>Synchronize on events %1</p>")
+    .arg(displayEventList(opEvents()));
 }
 
 QString PHide::toolTip() const
 {
-  return QString("<p>Hide</p><p>{%1}</p>").arg(PBase::displayEventList(opEvents()));
+  return QString("<p>Hide</p><p>%1</p>").arg(displayEventList(opEvents()));
 }
 
 QString PInternalChoice::toolTip() const

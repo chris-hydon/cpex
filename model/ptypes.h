@@ -78,7 +78,7 @@ protected:
   QList<Process> opProcesses() const;
   QPair<Process, QString> opProcCall() const;
 
-  static QString displayEventList(QList<Event>);
+  QString displayEventList(QList<Event>) const;
 
   mutable QString _text;
 

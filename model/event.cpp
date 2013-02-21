@@ -101,3 +101,14 @@ Event & Event::operator =(const Event & other)
   _d = other._d;
   return *this;
 }
+
+void ** Event::hsList(QList<Event> events)
+{
+  // ret is an array of void pointers.
+  void ** ret = (void **) malloc(sizeof(void *) * events.count());
+  for (int i = 0; i < events.count(); i++)
+  {
+    ret[i] = events[i]._d->hsPtr;
+  }
+  return ret;
+}

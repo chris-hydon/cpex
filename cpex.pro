@@ -25,6 +25,8 @@ QT += core gui
 TARGET = cpex
 TEMPLATE = app
 
+TRANSLATIONS = cpex.ts
+
 SOURCES += \
     delegate/processitemdelegate.cpp \
     model/event.cpp \

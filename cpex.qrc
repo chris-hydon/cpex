@@ -4,4 +4,7 @@
         <file>images/tick.png</file>
         <file>images/new-tab.png</file>
     </qresource>
+    <qresource prefix="/translations">
+        <file>cpex.qm</file>
+    </qresource>
 </RCC>

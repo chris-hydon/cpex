@@ -4,6 +4,7 @@
 #include "event.h"
 #include "process.h"
 
+#include <QCoreApplication>
 #include <QHash>
 #include <QList>
 
@@ -59,7 +60,8 @@ public:
   virtual QString toolTip() const { return QString(); }
 
   // Operators must be able to explain why an event is or is not offered.
-  virtual QString whyEvent(const Event & event) const = 0;
+  virtual QString whyEvent(const QList<Event> &) const = 0;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const = 0;
 
 // Protected methods in PBase can be exposed in the subclasses that require them
 // with the "using" keyword-> A subclass will use at most one of opEvent, opEvents,
@@ -70,7 +72,7 @@ protected:
 
   Event opEvent() const;
   QList<Event> opEvents() const;
-  QHash<Event, Event> opEventMap() const;
+  QList<QPair<Event, Event> > opEventMap() const;
   QList<QList<Event> > opAlphabets() const;
 
   Process opProcess() const;
@@ -81,13 +83,13 @@ protected:
   QString displayEventList(QList<Event>) const;
 
   mutable QString _text;
+  const CSPMSession * _session;
 
 private:
   void * _hsPtr;
-  const CSPMSession * _session;
   mutable bool _loadedEvent;
   mutable bool _loadedProcess;
-  mutable QHash<Event, Event> _eventMap;
+  mutable QList<QPair<Event, Event> > _eventMap;
   mutable QList<QList<Event> > _alphabets;
   mutable QList<Process> _processes;
 };
@@ -118,11 +120,14 @@ protected:
 
 class PAlphaParallel : public PNary
 {
+  Q_DECLARE_TR_FUNCTIONS(PAlphaParallel)
+
 public:
   using PBase::opAlphabets;
   PAlphaParallel(void * p, const CSPMSession * s) : PNary(p, s, AlphaParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -138,11 +143,14 @@ public:
 
 class PException : public PBinary
 {
+  Q_DECLARE_TR_FUNCTIONS(PException)
+
 public:
   using PBase::opEvents;
   PException(void * p, const CSPMSession * s) : PBinary(p, s, Exception) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -158,10 +166,13 @@ public:
 
 class PExternalChoice : public PNary
 {
+  Q_DECLARE_TR_FUNCTIONS(PExternalChoice)
+
 public:
   PExternalChoice(void * p, const CSPMSession * s) : PNary(p, s, ExternalChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -176,11 +187,14 @@ public:
 
 class PGenParallel : public PNary
 {
+  Q_DECLARE_TR_FUNCTIONS(PGenParallel)
+
 public:
   using PBase::opEvents;
   PGenParallel(void * p, const CSPMSession * s) : PNary(p, s, GenParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -196,11 +210,14 @@ public:
 
 class PHide : public PUnary
 {
+  Q_DECLARE_TR_FUNCTIONS(PHide)
+
 public:
   using PBase::opEvents;
   PHide(void * p, const CSPMSession * s) : PUnary(p, s, Hide) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -216,10 +233,13 @@ public:
 
 class PInternalChoice : public PNary
 {
+  Q_DECLARE_TR_FUNCTIONS(PInternalChoice)
+
 public:
   PInternalChoice(void * p, const CSPMSession * s) : PNary(p, s, InternalChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -234,10 +254,13 @@ public:
 
 class PInterleave : public PNary
 {
+  Q_DECLARE_TR_FUNCTIONS(PInterleave)
+
 public:
   PInterleave(void * p, const CSPMSession * s) : PNary(p, s, Interleave) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -252,10 +275,13 @@ public:
 
 class PInterrupt : public PBinary
 {
+  Q_DECLARE_TR_FUNCTIONS(PInterrupt)
+
 public:
   PInterrupt(void * p, const CSPMSession * s) : PBinary(p, s, Interrupt) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -270,11 +296,14 @@ public:
 
 class PLinkParallel : public PBinary
 {
+  Q_DECLARE_TR_FUNCTIONS(PLinkParallel)
+
 public:
   using PBase::opEventMap;
   PLinkParallel(void * p, const CSPMSession * s) : PBinary(p, s, LinkParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -290,9 +319,12 @@ public:
 
 class POperator : public PUnary
 {
+  Q_DECLARE_TR_FUNCTIONS(POperator)
+
 public:
   POperator(void * p, const CSPMSession * s) : PUnary(p, s, Operator) {}
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -307,10 +339,13 @@ public:
 
 class PPrefix : public PUnary
 {
+  Q_DECLARE_TR_FUNCTIONS(PPrefix)
+
 public:
   using PBase::opEvent;
   PPrefix(void * p, const CSPMSession * s) : PUnary(p, s, Prefix) {}
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -326,11 +361,14 @@ public:
 
 class PRename : public PUnary
 {
+  Q_DECLARE_TR_FUNCTIONS(PRename)
+
 public:
   using PBase::opEventMap;
   PRename(void * p, const CSPMSession * s) : PUnary(p, s, Rename) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -346,10 +384,13 @@ public:
 
 class PSequentialComp : public PBinary
 {
+  Q_DECLARE_TR_FUNCTIONS(PSequentialComp)
+
 public:
   PSequentialComp(void * p, const CSPMSession * s) : PBinary(p, s, SequentialComp) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -364,10 +405,13 @@ public:
 
 class PSlidingChoice : public PBinary
 {
+  Q_DECLARE_TR_FUNCTIONS(PSlidingChoice)
+
 public:
   PSlidingChoice(void * p, const CSPMSession * s) : PBinary(p, s, SlidingChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {
@@ -382,10 +426,13 @@ public:
 
 class PProcCall : public PBase
 {
+  Q_DECLARE_TR_FUNCTIONS(PProcCall)
+
 public:
   using PBase::opProcCall;
   PProcCall(void * p, const CSPMSession * s) : PBase(p, s, ProcCall) {}
-  virtual QString whyEvent(const Event & event) const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
   virtual bool operator ==(const PBase & other) const
   {

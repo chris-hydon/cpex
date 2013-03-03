@@ -102,13 +102,52 @@ Event & Event::operator =(const Event & other)
   return *this;
 }
 
-void ** Event::hsList(QList<Event> events)
+QString Event::displayEventList(const CSPMSession * session, QList<Event> events,
+  ListStyle style)
 {
-  // ret is an array of void pointers.
-  void ** ret = (void **) malloc(sizeof(void *) * events.count());
-  for (int i = 0; i < events.count(); i++)
+  if (events.isEmpty())
   {
-    ret[i] = events[i]._d->hsPtr;
+    // Empty set symbol or empty string.
+    return (style == Event::Set || style == Event::SetOrSingle) ?
+      QChar(0x2205) : QString();
   }
-  return ret;
+  if (style != Event::Set && events.size() == 1)
+  {
+    return events[0].displayText();
+  }
+
+  if (style == Event::Set || style == Event::SetOrSingle)
+  {
+    // evs is an array of haskell StablePtrs.
+    void ** evs = (void **) malloc(sizeof(void *) * events.count());
+    for (int i = 0; i < events.count(); i++)
+    {
+      evs[i] = events[i]._d->hsPtr;
+    }
+    wchar_t * str = NULL;
+    cpex_events_string(session->getHsPtr(), evs, events.count(), &str);
+    QString ret = QString::fromWCharArray(str);
+    free(evs);
+    free(str);
+    return ret;
+  }
+  else
+  {
+    QStringList ret;
+    QString extra;
+    foreach (Event e, events)
+    {
+      ret << e.displayText();
+    }
+
+    if (style == Event::CommaAnd)
+    {
+      extra = QObject::tr(" and %1").arg(ret.takeLast());
+    }
+    else if (style == Event::CommaOr)
+    {
+      extra = QObject::tr(" or %1").arg(ret.takeLast());
+    }
+    return ret.join(", ") + extra;
+  }
 }

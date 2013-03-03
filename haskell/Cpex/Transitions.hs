@@ -214,10 +214,13 @@ transitions (PUnaryOp (POperator _) p) = transitions p
 transitions (PUnaryOp (PPrefix ev) p) = [(ev, p)]
 
 -- The transitions of a renamed process are the transitions of the original
--- process, with events mapped to the new process.
+-- process, with events mapped to the new process. An event may be renamed to
+-- multiple things at once.
 transitions (PUnaryOp (PRename evm) p) = sortBy (comparing fst) $
-  map (\(ev, pn) -> (fromMaybe ev (lookup ev (F.toList evm)),
-    PUnaryOp (PRename evm) pn)) $ transitions p
+  concatMap (\(ev, pn) -> [(ev', PUnaryOp (PRename evm) pn) |
+    ev' <- lookupMany ev (F.toList evm)]) $ transitions p
+  where lookupMany k m = let r = map snd (filter ((== k) . fst) m)
+          in if r == [] then [k] else r
 
 -- The transitions of the sequential composition p1; p2 are the transitions of
 -- p1 with the resulting process sequentially composed with p2, for all events

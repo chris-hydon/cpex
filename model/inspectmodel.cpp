@@ -19,6 +19,16 @@ const InspectItem * InspectItem::parent() const
   return static_cast<const InspectItem *>(_parentItem());
 }
 
+QList<Event> InspectItem::events() const
+{
+  return _events;
+}
+
+void InspectItem::setEvents(QList<Event> events)
+{
+  _events = events;
+}
+
 void InspectItem::_load() const
 {
   QList<Process> components = process().components(true);
@@ -122,15 +132,12 @@ QVariant InspectModel::data(const QModelIndex & index, int role) const
     }
     case Qt::DecorationRole:
     {
-      if (!_event.isValid())
+      InspectItem * item = static_cast<InspectItem *>(index.internalPointer());
+      if (item->events().isEmpty())
       {
         return QVariant();
       }
-      if (p->process().offersEvent(_event))
-      {
-        return tick;
-      }
-      return cross;
+      return p->process().offeredEvents(item->events()).isEmpty() ? cross : tick;
     }
     default:
       return QVariant();
@@ -151,28 +158,47 @@ bool InspectModel::hasChildren(const QModelIndex & parent) const
 
 void InspectModel::eventTextChanged(const QString & newText)
 {
-  if (newText == QString())
+  Event rootEvent;
+  if (newText != QString())
   {
-    _event = Event();
-  }
-  else
-  {
-    _event = _rootProcess->next(0)->process().session()->stringToEvent(newText);
+    rootEvent = _rootProcess->next(0)->process().session()->stringToEvent(newText);
   }
 
-  _dataChanged(index(0, 0));
-  emit eventChanged(_event);
+  QList<Event> events;
+  if (rootEvent.isValid())
+  {
+    events << rootEvent;
+  }
+  _dataChanged(index(0, 0), events);
+  emit eventChanged();
 }
 
-void InspectModel::_dataChanged(const QModelIndex & idx)
+void InspectModel::refreshData(const QModelIndex & idx)
 {
   InspectItem * item = static_cast<InspectItem *>(idx.internalPointer());
   if (item->isLoaded())
   {
+    QList<Event> events = item->events();
+    // If events is empty, this line will return an empty hash, and next.value()
+    // below will return an empty list. Furthermore, any successors not included
+    // here will also result in an empty list when value() is called below, so the
+    // behaviour is sensible.
+    QHash<int, QList<Event> > next =
+      item->process().eventsRequiredBySuccessors(events);
     emit dataChanged(index(0, 0, idx), index(item->count() - 1, 0, idx));
     for (int i = 0; i < item->count(); i++)
     {
-      _dataChanged(index(i, 0, idx));
+      _dataChanged(index(i, 0, idx), next.value(i));
     }
+  }
+}
+
+void InspectModel::_dataChanged(const QModelIndex & idx, QList<Event> events)
+{
+  InspectItem * item = static_cast<InspectItem *>(idx.internalPointer());
+  if (item->isLoaded())
+  {
+    item->setEvents(events);
+    refreshData(idx);
   }
 }

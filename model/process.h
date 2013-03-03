@@ -22,10 +22,12 @@ public:
   QList<QPair<Event, Process> > transitions() const;
   QList<Process> components(bool expandCall = false) const;
   bool offersEvent(Event) const;
+  QList<Event> offeredEvents(const QList<Event> & = QList<Event>()) const;
   DisplayString displayText() const;
   QString fullText() const;
   QString toolTip() const;
-  QString whyEvent(const Event &) const;
+  QString whyEvent(const QList<Event> &, bool) const;
+  QHash<int, QList<Event> > eventsRequiredBySuccessors(const QList<Event> &) const;
   bool isValid() const;
   const CSPMSession * session() const;
   bool operator ==(const Process & other) const;

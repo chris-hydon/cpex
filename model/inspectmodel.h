@@ -13,9 +13,17 @@ public:
   // two InspectItems, one the parent of the next, so that the root may be visible.
   InspectItem(const Process &);
   const InspectItem * parent() const;
+  QList<Event> events() const;
+  void setEvents(QList<Event> events);
 
 protected:
   void _load() const;
+
+private:
+  // This is a list of events required by the event query component. While the
+  // query itself is always a single event, renaming can cause it to become a list
+  // of events, joined by "or".
+  QList<Event> _events;
 };
 
 class InspectModel : public QAbstractItemModel
@@ -33,16 +41,16 @@ public:
   bool hasChildren(const QModelIndex & parent = QModelIndex()) const;
 
 signals:
-  void eventChanged(const Event &);
+  void eventChanged();
 
 public slots:
   void eventTextChanged(const QString &);
+  void refreshData(const QModelIndex &);
 
 private:
-  void _dataChanged(const QModelIndex &);
+  void _dataChanged(const QModelIndex &, QList<Event>);
 
   InspectItem * _rootProcess;
-  Event _event;
 };
 
 #endif // INSPECTMODEL_H

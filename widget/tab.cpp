@@ -156,8 +156,13 @@ void Tab::setupInspector(const Expression & expr)
     this, SLOT(displayEventDetails(const QModelIndex &))
   );
   connect(
-    m, SIGNAL(eventChanged(const Event)),
-    this, SLOT(handleInspectorEventChanged(const Event &)));
+    m, SIGNAL(eventChanged()),
+    this, SLOT(displayEventDetails())
+  );
+  connect(
+    _tree, SIGNAL(expanded(QModelIndex)),
+    m, SLOT(refreshData(QModelIndex))
+  );
 
   // Item delegate.
   _tree->setItemDelegate(new ProcessItemDelegate(_tree));
@@ -181,9 +186,8 @@ void Tab::displayEventDetails(const QModelIndex & idx)
     }
   }
 
-  // No details if the event is invalid and no process is selected, or there is
-  // nothing typed in.
-  if ((!index.isValid() && !_event.isValid()) || _inspectorWhy->text() == QString())
+  // No details if there is nothing typed in.
+  if (_inspectorWhy->text() == QString())
   {
     _inspectorWhyDetails->setVisible(false);
     return;
@@ -197,15 +201,11 @@ void Tab::displayEventDetails(const QModelIndex & idx)
   }
   else
   {
-    Process process = static_cast<ProcessItem *>(index.internalPointer())->process();
-    _inspectorWhyDetails->setText(process.whyEvent(_event));
+    InspectItem * idx = static_cast<InspectItem *>(index.internalPointer());
+    Process process = idx->process();
+    QList<Event> events = idx->events();
+    _inspectorWhyDetails->setText(process.whyEvent(events, !index.parent().isValid()));
   }
 
   _inspectorWhyDetails->setVisible(true);
-}
-
-void Tab::handleInspectorEventChanged(const Event & ev)
-{
-  _event = ev;
-  displayEventDetails(QModelIndex());
 }

@@ -22,8 +22,7 @@ public:
 signals:
 
 public slots:
-  void displayEventDetails(const QModelIndex &);
-  void handleInspectorEventChanged(const Event &);
+  void displayEventDetails(const QModelIndex & = QModelIndex());
 
 private:
   void setupProbe(const Expression &);
@@ -32,7 +31,6 @@ private:
   Q_DISABLE_COPY(Tab)
   Expression _expression;
   ProcessTree * _tree;
-  Event _event;
   QLabel * _inspectorWhyDetails;
   QLineEdit * _inspectorWhy;
 };

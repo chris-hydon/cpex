@@ -1,3 +1,5 @@
+#include <QLocale>
+#include <QTranslator>
 #include <QtGui/QApplication>
 #include "mainwindow.h"
 #include "cspmsession.h"
@@ -19,6 +21,9 @@ int main(int argc, char *argv[])
   hs_init_ghc(&argc, &argv, conf);
 
   QApplication a(argc, argv);
+  QTranslator translator;
+  translator.load(QString("cpex_") + QLocale::system().name(), ":/translations");
+  a.installTranslator(&translator);
   MainWindow * w = MainWindow::get();
   w->show();
 

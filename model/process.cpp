@@ -218,6 +218,20 @@ bool Process::offersEvent(Event event) const
   return false;
 }
 
+QList<Event> Process::offeredEvents(const QList<Event> & events) const
+{
+  QPair<Event, Process> t;
+  QList<Event> offered;
+  foreach (t, transitions())
+  {
+    if (events.isEmpty() || events.contains(t.first))
+    {
+      offered.append(t.first);
+    }
+  }
+  return offered;
+}
+
 DisplayString Process::displayText() const
 {
   if (_d->displayText == DisplayString())
@@ -247,15 +261,30 @@ QString Process::toolTip() const
   return _d->backend->toolTip();
 }
 
-QString Process::whyEvent(const Event & event) const
+QString Process::whyEvent(const QList<Event> & events, bool atRoot) const
 {
-  if (!event.isValid())
+  if (events.isEmpty())
   {
-    return QObject::tr("The event given is not valid.");
+    return atRoot ? QObject::tr("The event given is not valid.")
+      : QObject::tr("This component is not relevant to your query.");
   }
-  return offersEvent(event) ? QObject::tr("This process offers the event.") :
-    QObject::tr("This process does not offer the event because %1")
-    .arg(_d->backend->whyEvent(event));
+  QList<Event> passEvents = offeredEvents(events);
+  if (passEvents.isEmpty())
+  {
+    return _d->backend->whyEvent(events);
+  }
+  return QObject::tr("This component offers the event(s) %1.", 0, events.count())
+    .arg(Event::displayEventList(_d->session, events, Event::SetOrSingle));
+}
+
+QHash<int, QList<Event> > Process::eventsRequiredBySuccessors(
+  const QList<Event> & events) const
+{
+  if (events.isEmpty())
+  {
+    return QHash<int, QList<Event> >();
+  }
+  return _d->backend->successorEvents(events);
 }
 
 bool Process::isValid() const

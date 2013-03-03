@@ -26,7 +26,23 @@ QList<Event> InspectItem::events() const
 
 void InspectItem::setEvents(QList<Event> events)
 {
+  static QIcon tick(":/images/tick.png");
+  static QIcon cross(":/images/cross.png");
+
   _events = events;
+  if (events.isEmpty())
+  {
+    _deco = QVariant();
+  }
+  else
+  {
+    _deco = process().offeredEvents(events).isEmpty() ? cross : tick;
+  }
+}
+
+QVariant InspectItem::decoration() const
+{
+  return _deco;
 }
 
 void InspectItem::_load() const
@@ -108,9 +124,6 @@ int InspectModel::columnCount(const QModelIndex &) const
 
 QVariant InspectModel::data(const QModelIndex & index, int role) const
 {
-  static QIcon tick(":/images/tick.png");
-  static QIcon cross(":/images/cross.png");
-
   if (!index.isValid())
   {
     return QVariant();
@@ -132,12 +145,7 @@ QVariant InspectModel::data(const QModelIndex & index, int role) const
     }
     case Qt::DecorationRole:
     {
-      InspectItem * item = static_cast<InspectItem *>(index.internalPointer());
-      if (item->events().isEmpty())
-      {
-        return QVariant();
-      }
-      return p->process().offeredEvents(item->events()).isEmpty() ? cross : tick;
+      return p->decoration();
     }
     default:
       return QVariant();

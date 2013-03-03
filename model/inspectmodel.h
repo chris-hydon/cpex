@@ -15,6 +15,7 @@ public:
   const InspectItem * parent() const;
   QList<Event> events() const;
   void setEvents(QList<Event> events);
+  QVariant decoration() const;
 
 protected:
   void _load() const;
@@ -24,6 +25,9 @@ private:
   // query itself is always a single event, renaming can cause it to become a list
   // of events, joined by "or".
   QList<Event> _events;
+
+  // This is the decoration to be used by the model. Set when _events changes.
+  QVariant _deco;
 };
 
 class InspectModel : public QAbstractItemModel

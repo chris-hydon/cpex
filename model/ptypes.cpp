@@ -269,6 +269,19 @@ QString PSlidingChoice::toolTip() const
   return "<p>Sliding Choice</p>";
 }
 
+QString PSynchronisingExternalChoice::toolTip() const
+{
+  return QString("<p>Synchronising External Choice</p>"
+    "<p>Synchronize on events %1</p>")
+    .arg(Event::displayEventList(_session, opEvents()));
+}
+
+QString PSynchronisingInterrupt::toolTip() const
+{
+  return QString("<p>Synchronising Interrupt</p><p>Synchronize on events %1</p>")
+    .arg(Event::displayEventList(_session, opEvents()));
+}
+
 QHash<int, QList<Event> > _duplicateList(const QList<Event> & events, int count)
 {
   QHash<int, QList<Event> > ret;
@@ -802,4 +815,77 @@ QHash<int, QList<Event> >
   PSlidingChoice::successorEvents(const QList<Event> & events) const
 {
   return _duplicateList(events, 1);
+}
+
+QString PSynchronisingExternalChoice::whyEvent(const QList<Event> & events) const
+{
+  QStringList complaints;
+  QList<Event> inInterface;
+  QList<Event> notInInterface;
+  foreach (Event event, events)
+  {
+    if (opEvents().contains(event))
+    {
+      inInterface << event;
+    }
+    else
+    {
+      notInInterface << event;
+    }
+  }
+  if (!inInterface.isEmpty())
+  {
+    complaints << tr("%1 is/are in the interface, and not all of the components "
+      "offer it/them.", "", inInterface.count())
+      .arg(Event::displayEventList(_session, inInterface, Event::CommaAnd));
+  }
+  if (!notInInterface.isEmpty())
+  {
+    complaints << tr("None of the components offer %1.", "", notInInterface.count())
+      .arg(Event::displayEventList(_session, notInInterface, Event::CommaOr));
+  }
+  return complaints.join("\n");
+}
+
+QHash<int, QList<Event> >
+  PSynchronisingExternalChoice::successorEvents(const QList<Event> & events) const
+{
+  return _duplicateList(events, opProcesses().count());
+}
+
+QString PSynchronisingInterrupt::whyEvent(const QList<Event> & events) const
+{
+  QStringList complaints;
+  QList<Event> inInterface;
+  QList<Event> notInInterface;
+  foreach (Event event, events)
+  {
+    if (opEvents().contains(event))
+    {
+      inInterface << event;
+    }
+    else
+    {
+      notInInterface << event;
+    }
+  }
+  if (!inInterface.isEmpty())
+  {
+    complaints << tr("%1 is/are in the interface, and it is not the case that both "
+      "of the components offer it/them.", "", inInterface.count())
+      .arg(Event::displayEventList(_session, inInterface, Event::CommaAnd));
+  }
+  if (!notInInterface.isEmpty())
+  {
+    complaints << tr("Neither of the components offer %1.", "",
+      notInInterface.count())
+      .arg(Event::displayEventList(_session, notInInterface, Event::CommaOr));
+  }
+  return complaints.join("\n");
+}
+
+QHash<int, QList<Event> >
+  PSynchronisingInterrupt::successorEvents(const QList<Event> & events) const
+{
+  return _duplicateList(events, 2);
 }

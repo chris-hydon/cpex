@@ -72,7 +72,6 @@ foreign export ccall
   cpex_string_to_event :: SessionPtr -> CWString -> Ptr EventPtr -> IO CUInt
 
 -- Builtin process STOP.
-builtInName s = name . head . filter ((== s) . stringName) $ builtins False
 csp_stop_id = procName (scopeId (builtInName "STOP") [] Nothing)
 csp_stop = PProcCall csp_stop_id (POp PExternalChoice S.empty)
 
@@ -97,7 +96,9 @@ operatorNum (PUnaryOp (PPrefix _) _) = 10
 operatorNum (PUnaryOp (PRename _) _) = 11
 operatorNum (PBinaryOp PSequentialComp _ _) = 12
 operatorNum (PBinaryOp PSlidingChoice _ _) = 13
-operatorNum (PProcCall _ _) = 14
+operatorNum (POp (PSynchronisingExternalChoice _) _) = 14
+operatorNum (PBinaryOp (PSynchronisingInterrupt _) _ _) = 15
+operatorNum (PProcCall _ _) = 16
 
 -- Helper functions for reading from and writing to stable pointers.
 input :: StablePtr a -> IO a

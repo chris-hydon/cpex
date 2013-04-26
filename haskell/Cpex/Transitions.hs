@@ -237,6 +237,89 @@ transitions (PBinaryOp PSlidingChoice p1 p2) = (Tau, p2) :
   where slideVisible (Tau, pn) = (Tau, PBinaryOp PSlidingChoice pn p2)
         slideVisible x = x
 
+-- The transitions of synchronising external choice are the transitions of each
+-- member of ps, minus those with events in evs. Those in evs must be offered by
+-- all ps and do not resolve the choice. Tau does not resolve the choice either.
+transitions (POp (PSynchronisingExternalChoice evs) ps) =
+  foldr (insertBy (comparing fst)) frees syncs
+  -- Frees - analogous to External Choice, but filtering out events in evs.
+  where frees = filterFree (S.viewl evs') $ transitionsMap syncEC ps
+        filterFree _ [] = []
+        filterFree S.EmptyL ts = ts
+        filterFree (e S.:< es) ((en, pn):ts)
+          | e < en = filterFree (S.viewl es) ((en, pn):ts)
+          | e > en = (en, pn):(filterFree (e S.:< es) ts)
+          | otherwise = filterFree (e S.:< es) ts
+        syncEC n (Tau, pn) =
+          (Tau, POp (PSynchronisingExternalChoice evs) (S.update n pn ps))
+        syncEC _ (ev, pn) = (ev, pn)
+  -- Analogous to Generalized Parallel, but here tick resolves the choice.
+        syncs = synchronize
+          (POp (PSynchronisingExternalChoice evs) ps) as tss (F.toList evs')
+        evs' = S.unstableSort evs
+        tss = fmap transitions ps
+        as = S.replicate (S.length ps) evs'
+
+-- The transitions of synchronising interrupt are the transitions of the first
+-- component with events not in the given list resulting in non-resolution of
+-- the interrupt, plus those of the second component resulting in the resolution
+-- of the interrupt, plus those with events offered by both components resulting
+-- in the event occurring in both resulting in non-resolution, plus tau events
+-- in the second component resulting in non-resolution.
+transitions (PBinaryOp (PSynchronisingInterrupt evs) p1 p2) =
+  doInterrupt (S.viewl (S.unstableSort evs)) (transitions p1) (transitions p2)
+  -- This is a kind of three way merge, iterating over the ordered (by event)
+  -- lists of synchronising events, transitions of p1 and transitions of p2.
+  where doInterrupt _ [] [] = []
+  -- Tau action in the interrupting process.
+        doInterrupt es ts1 ((Tau, p2'):ts2) =
+          (Tau, PBinaryOp (PSynchronisingInterrupt evs) p1 p2'):
+          (doInterrupt es ts1 ts2)
+  -- No interrupting transitions left - pass everything not in es.
+        doInterrupt S.EmptyL ((e1, p1'):ts1) [] =
+          (e1, PBinaryOp (PSynchronisingInterrupt evs) p1' p2):
+          (doInterrupt S.EmptyL ts1 [])
+        doInterrupt (e S.:< es) ((e1, p1'):ts1) []
+          | e < e1 = doInterrupt (S.viewl es) ((e1, p1'):ts1) []
+          | e > e1 = (e1, PBinaryOp (PSynchronisingInterrupt evs) p1' p2):
+              (doInterrupt (e S.:< es) ts1 [])
+          | otherwise = doInterrupt (e S.:< es) ts1 []
+  -- Nothing left in the first component - pass everything not in es. Special
+  -- case for Tau has already been dealt with.
+        doInterrupt S.EmptyL [] ((e2, p2'):ts2) = (e2, p2'):
+          (doInterrupt S.EmptyL [] ts2)
+        doInterrupt (e S.:< es) [] ((e2, p2'):ts2)
+          | e < e2 = doInterrupt (S.viewl es) [] ((e2, p2'):ts2)
+          | e > e2 = (e2, p2'):(doInterrupt (e S.:< es) [] ts2)
+          | otherwise = doInterrupt (e S.:< es) [] ts2
+  -- Something in both components, nothing left in es - behave as a normal
+  -- interrupt.
+        doInterrupt S.EmptyL ((e1, p1'):ts1) ((e2, p2'):ts2)
+          | e1 <= e2 = (e1, PBinaryOp (PSynchronisingInterrupt evs) p1' p2):
+              (doInterrupt S.EmptyL ts1 ((e2, p2'):ts2))
+          | otherwise = (e2, p2'):(doInterrupt S.EmptyL ((e1, p1'):ts1) ts2)
+  -- Something in all three lists. This is the big one.
+        doInterrupt (e S.:< es) ((e1, p1'):ts1) ((e2, p2'):ts2)
+          -- Current sync event has already been passed, move to the next.
+          | e < e1 && e < e2 =
+              doInterrupt (S.viewl es) ((e1, p1'):ts1) ((e2, p2'):ts2)
+          -- Current sync event offered by both sides, offer that event and
+          -- update both sides without resolving the interrupt.
+          | e == e1 && e == e2 =
+              (e, PBinaryOp (PSynchronisingInterrupt evs) p1' p2'):
+                (doInterrupt (e S.:< es) ts1 ts2)
+          -- Current sync event offered by exactly one side, don't offer that
+          -- event.
+          | e == e1 = doInterrupt (e S.:< es) ts1 ((e2, p2'):ts2)
+          | e == e2 = doInterrupt (e S.:< es) ((e1, p1'):ts1) ts2
+          -- Now e > e1 and e > e2, so the events being considered aren't in
+          -- the synchronising set in these last two cases. Left side events
+          -- first.
+          | e1 <= e2 = (e1, PBinaryOp (PSynchronisingInterrupt evs) p1' p2):
+              (doInterrupt (e S.:< es) ts1 ((e2, p2'):ts2))
+          -- And finally right side events.
+          | otherwise = (e2, p2'):(doInterrupt (e S.:< es) ((e1, p1'):ts1) ts2)
+
 -- The transitions for a process call are simply those of the inner process
 transitions (PProcCall pn p) = transitions p
 

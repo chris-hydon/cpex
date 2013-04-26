@@ -22,6 +22,8 @@ class PPrefix;
 class PRename;
 class PSequentialComp;
 class PSlidingChoice;
+class PSynchronisingExternalChoice;
+class PSynchronisingInterrupt;
 class PProcCall;
 
 class PBase
@@ -31,7 +33,7 @@ public:
   {
     AlphaParallel, Exception, ExternalChoice, GenParallel, Hide, InternalChoice,
     Interleave, Interrupt, LinkParallel, Operator, Prefix, Rename, SequentialComp,
-    SlidingChoice, ProcCall
+    SlidingChoice, SynchronisingExternalChoice, SynchronisingInterrupt, ProcCall
   };
   const PType type;
 
@@ -51,6 +53,8 @@ public:
   virtual bool isEqual(const PRename *) const { return false; }
   virtual bool isEqual(const PSequentialComp *) const { return false; }
   virtual bool isEqual(const PSlidingChoice *) const { return false; }
+  virtual bool isEqual(const PSynchronisingExternalChoice *) const { return false; }
+  virtual bool isEqual(const PSynchronisingInterrupt *) const { return false; }
   virtual bool isEqual(const PProcCall *) const { return false; }
 
   // Each implementation must call other.isEqual(this) to complete the visitor loop.
@@ -419,6 +423,52 @@ public:
   }
 
   virtual bool isEqual(const PSlidingChoice * other) const
+  {
+    return opProcess2() == other->opProcess2();
+  }
+};
+
+class PSynchronisingExternalChoice : public PNary
+{
+  Q_DECLARE_TR_FUNCTIONS(PSynchronisingExternalChoice)
+
+public:
+  using PBase::opEvents;
+  PSynchronisingExternalChoice(void * p, const CSPMSession * s) :
+    PNary(p, s, SynchronisingExternalChoice) {}
+  virtual QString toolTip() const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+
+  virtual bool operator ==(const PBase & other) const
+  {
+    return other.isEqual(this);
+  }
+
+  virtual bool isEqual(const PSynchronisingExternalChoice * other) const
+  {
+    return opProcesses() == other->opProcesses();
+  }
+};
+
+class PSynchronisingInterrupt : public PBinary
+{
+  Q_DECLARE_TR_FUNCTIONS(PSynchronisingInterrupt)
+
+public:
+  using PBase::opEvents;
+  PSynchronisingInterrupt(void * p, const CSPMSession * s) :
+    PBinary(p, s, SynchronisingInterrupt) {}
+  virtual QString toolTip() const;
+  virtual QString whyEvent(const QList<Event> &) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+
+  virtual bool operator ==(const PBase & other) const
+  {
+    return other.isEqual(this);
+  }
+
+  virtual bool isEqual(const PSynchronisingInterrupt * other) const
   {
     return opProcess2() == other->opProcess2();
   }

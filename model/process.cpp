@@ -174,6 +174,7 @@ QList<Process> Process::components(bool expandCall) const
     case PBase::LinkParallel:
     case PBase::SequentialComp:
     case PBase::SlidingChoice:
+    case PBase::SynchronisingInterrupt:
     {
       PBinary * b = static_cast<PBinary *>(_d->backend);
       ret.append(b->opProcess2().first);
@@ -186,6 +187,7 @@ QList<Process> Process::components(bool expandCall) const
     case PBase::GenParallel:
     case PBase::Interleave:
     case PBase::InternalChoice:
+    case PBase::SynchronisingExternalChoice:
     {
       PNary * b = static_cast<PNary *>(_d->backend);
       ret = b->opProcesses();

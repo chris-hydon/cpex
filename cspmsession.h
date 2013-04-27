@@ -20,6 +20,7 @@ public:
   QStringList getWarnings() const;
   QStringList procCallNames() const;
   QSet<Process> * procs() const;
+  QHash<size_t, Event> * events() const;
   void * getHsPtr() const;
   bool operator ==(const CSPMSession & other) const;
 
@@ -29,6 +30,9 @@ private:
   QString _fileName;
   QString _displayName;
   QSet<Process> * _procs;
+  // A hash of events, keyed by the StablePtr created by Haskell. The size of this
+  // pointer varies depending on architecture, hence the use of size_t.
+  QHash<size_t, Event> * _events;
   mutable QStringList _procCallNames;
   mutable bool _procCallNamesLoaded;
 };

@@ -1,7 +1,8 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, FlexibleInstances, TypeSynonymInstances #-}
 module Cpex.Foreign () where
 
 import Control.Monad
+import Control.Monad.State.Strict
 import Control.Monad.Trans
 import Cpex.Transitions
 import CSPM
@@ -16,19 +17,22 @@ import Foreign.Marshal.Utils
 import Foreign.Ptr
 import Foreign.StablePtr
 import Foreign.Storable
+import Util.Exception
 import Util.PrettyPrint
 import qualified Util.MonadicPrettyPrint as M
 
 import qualified Data.Foldable as F
 import qualified Data.Sequence as S
+import qualified Data.HashTable.IO as H
 
 type ProcPtr = StablePtr UProc
 type EventPtr = StablePtr Event
+type HashTable k v = H.BasicHashTable k v
 
 -- Foreign exports: Each Ptr argument (not StablePtr) is intended for output.
 foreign export ccall
-  cpex_transitions :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr ProcPtr) ->
-    Ptr CUInt -> IO ()
+  cpex_transitions :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+    Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 foreign export ccall
@@ -45,23 +49,26 @@ foreign export ccall
 foreign export ccall
   cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
 foreign export ccall
-  cpex_op_event :: ProcPtr -> Ptr EventPtr -> IO CUInt
+  cpex_op_event :: SessionPtr -> ProcPtr -> Ptr EventPtr -> IO CUInt
 foreign export ccall
-  cpex_op_events :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
+  cpex_op_events :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt ->
+    IO CUInt
 foreign export ccall
-  cpex_op_event_map :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr EventPtr) ->
-    Ptr CUInt -> IO CUInt
+  cpex_op_event_map :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+    Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
 foreign export ccall
-  cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) ->
+  cpex_op_alphabets :: SessionPtr -> ProcPtr -> Ptr (Ptr (Ptr EventPtr)) ->
     Ptr (Ptr CUInt) -> IO CUInt
 foreign export ccall
-  cpex_op_process :: ProcPtr -> Ptr ProcPtr -> IO CUInt
+  cpex_op_process :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> IO CUInt
 foreign export ccall
-  cpex_op_process2 :: ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
+  cpex_op_process2 :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
 foreign export ccall
-  cpex_op_processes :: ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
+  cpex_op_processes :: SessionPtr -> ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt ->
+    IO CUInt
 foreign export ccall
-  cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
+  cpex_op_proccall :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> Ptr CWString ->
+    IO CUInt
 
 foreign export ccall
   cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CUInt) ->
@@ -101,26 +108,47 @@ operatorNum (PBinaryOp (PSynchronisingInterrupt _) _ _) = 15
 operatorNum (PProcCall _ _) = 16
 
 -- Helper functions for reading from and writing to stable pointers.
-input :: StablePtr a -> IO a
-input = deRefStablePtr
+class Transferrable a where
+  input :: StablePtr a -> NativeSessionMonad a
+  output :: SessionPtr -> a -> Ptr (StablePtr a) -> NativeSessionMonad ()
+  outputArray :: SessionPtr -> [a] -> Ptr (Ptr (StablePtr a)) ->
+    NativeSessionMonad ()
 
-output :: a -> Ptr (StablePtr a) -> IO ()
-output x o = newStablePtr x >>= poke o
+  input p = liftIO $ deRefStablePtr p
 
-outputArray :: [a] -> Ptr (Ptr (StablePtr a)) -> IO ()
-outputArray xs o = mapM newStablePtr xs >>= newArray >>= poke o
+instance Transferrable UProc where
+  output _ x o = liftIO $ newStablePtr x >>= poke o
+  outputArray _ xs o = liftIO $ mapM newStablePtr xs >>= newArray >>= poke o
+
+instance Transferrable Event where
+  output s x o = do
+    t <- gets events
+    liftIO $ pullevent t x >>= poke o
+  outputArray s xs o = do
+    t <- gets events
+    liftIO $ mapM (pullevent t) xs >>= newArray >>= poke o
+
+pullevent :: (HashTable Event EventPtr) -> Event -> IO EventPtr
+pullevent t e = do
+  p <- H.lookup t e
+  case p of
+    Just ptr -> return ptr
+    Nothing -> do
+      ptr <- newStablePtr e
+      H.insert t e ptr
+      return ptr
 
 -- Input: Stable pointer to a process.
 -- Output: Array of events offered by the process (may include duplicates).
 --         Array of processes resulting from applying the respective event.
 --         Size of array.
-cpex_transitions :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr ProcPtr) ->
-  Ptr CUInt -> IO ()
-cpex_transitions inProc outEvents outProcs outCount = do
+cpex_transitions :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+  Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
+cpex_transitions sessPtr inProc outEvents outProcs outCount = runSession sessPtr $ do
   p <- input inProc
   let (es, pns) = unzip $ map simplify $ transitions p
-  outputArray es outEvents
-  outputArray pns outProcs
+  outputArray sessPtr es outEvents
+  outputArray sessPtr pns outProcs
   liftIO $ poke outCount $ fromIntegral $ length es
 
 -- Input: Event.
@@ -128,7 +156,7 @@ cpex_transitions inProc outEvents outProcs outCount = do
 --         The type of the event (user defined, Tau or Tick).
 cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
 cpex_event_string inEvent outName outType = do
-  e <- input inEvent
+  e <- deRefStablePtr inEvent
   name <- (newCWString . show . prettyPrint) e
   poke outType $ fromIntegral $ etype e
   poke outName name
@@ -150,73 +178,75 @@ cpex_events_string sess inEvents inCount outName = runSession sess $ do
 -- Returns: True if the input events are equal, false if not.
 cpex_event_equal :: EventPtr -> EventPtr -> IO Bool
 cpex_event_equal inEv1 inEv2 = do
-  e1 <- input inEv1
-  e2 <- input inEv2
+  e1 <- deRefStablePtr inEv1
+  e2 <- deRefStablePtr inEv2
   return (e1 == e2)
 
 -- Input: Process.
 -- Output: A string representation of that process, suitable for output.
 cpex_process_string :: SessionPtr -> ProcPtr -> Bool -> Ptr CWString -> IO CUInt
 cpex_process_string sessPtr inProc inBrief outString = runSession sessPtr $ do
-  doc <- liftIO (input inProc) >>= (if inBrief then M.prettyPrintBrief else M.prettyPrint)
+  doc <- input inProc >>= (if inBrief then M.prettyPrintBrief else M.prettyPrint)
   liftIO $ (newCWString . (renderStyle style{mode=LeftMode})) doc >>= poke outString
 
 -- Input: Two processes.
 -- Returns: True if the input processes are equal, false if not.
 cpex_process_equal :: ProcPtr -> ProcPtr -> IO Bool
 cpex_process_equal inProc1 inProc2 = do
-  p1 <- input inProc1
-  p2 <- input inProc2
+  p1 <- deRefStablePtr inProc1
+  p2 <- deRefStablePtr inProc2
   return (p1 == p2)
 
 -- Input: A process.
 -- Returns: A hash of that process.
 cpex_process_hash :: ProcPtr -> IO CUInt
 cpex_process_hash inProc = do
-  p <- input inProc
+  p <- deRefStablePtr inProc
   return $ fromIntegral $ hash p
 
 -- Input: Process.
 -- Output: A number representing the operator used.
 cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
 cpex_process_operator inProc outOp = do
-  p <- input inProc
+  p <- deRefStablePtr inProc
   poke outOp $ fromIntegral $ operatorNum p
 
 -- Input: Process.
 -- Output: The single event parameter for the process. Only valid for Prefix
 --         processes (a -> P).
 -- Error: If the process is of the wrong type.
-cpex_op_event :: ProcPtr -> Ptr EventPtr -> IO CUInt
-cpex_op_event inProc outEvent = do
+cpex_op_event :: SessionPtr -> ProcPtr -> Ptr EventPtr -> IO CUInt
+cpex_op_event sessPtr inProc outEvent = runSession sessPtr $ do
   p <- input inProc
   let e = get_event p
   case e of
-    Just ev -> liftIO $ do
-      output ev outEvent
-      return 1
-    Nothing -> return 0
+    Just ev -> do
+      output sessPtr ev outEvent
+    Nothing -> panic "The input process is not a prefix operator."
   where get_event (PUnaryOp (PPrefix ev) _) = Just ev
         get_event _ = Nothing
 
 -- Input: Process.
 -- Output: The set of events parameter for the process, and the number of events
 --         in the set. Only valid for Exception (P [|A|> Q), Generalized
---         Parallel (P [|A|] Q) and Hide (P \ A).
+--         Parallel (P [|A|] Q), Hide (P \ A), Synchronising External Choice
+--         (P [+ A +] Q) and Synchronising Interrupt (P /+ A +\ Q).
 -- Error: If the process is of the wrong type.
-cpex_op_events :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
-cpex_op_events inProc outEvents outSize = do
+cpex_op_events :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) -> Ptr CUInt ->
+  IO CUInt
+cpex_op_events sessPtr inProc outEvents outSize = runSession sessPtr $ do
   p <- input inProc
   let es = get_events p
   case es of
-    Just es -> liftIO $ do
-      outputArray (F.toList es) outEvents
-      poke outSize $ fromIntegral $ S.length es
-      return 1
-    Nothing -> return 0
+    Just es -> do
+      outputArray sessPtr (F.toList es) outEvents
+      liftIO $ poke outSize $ fromIntegral $ S.length es
+    Nothing -> panic "The input process does not take a set of events."
   where get_events (PBinaryOp (PException evs) _ _) = Just evs
         get_events (POp (PGenParallel evs) _) = Just evs
         get_events (PUnaryOp (PHide evs) _) = Just evs
+        get_events (POp (PSynchronisingExternalChoice evs) _) = Just evs
+        get_events (PBinaryOp (PSynchronisingInterrupt evs) _ _) = Just evs
         get_events _ = Nothing
 
 -- Input: Process.
@@ -224,19 +254,18 @@ cpex_op_events inProc outEvents outSize = do
 --         event map, and the number of such pairs. Only valid for Linked
 --         Parallel (P [A <- B] Q) and Rename (P [[A <- B]]).
 -- Error: If the process is of the wrong type.
-cpex_op_event_map :: ProcPtr -> Ptr (Ptr EventPtr) -> Ptr (Ptr EventPtr) ->
-  Ptr CUInt -> IO CUInt
-cpex_op_event_map inProc outLeft outRight outSize = do
+cpex_op_event_map :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+  Ptr (Ptr EventPtr) -> Ptr CUInt -> IO CUInt
+cpex_op_event_map sessPtr inProc outLeft outRight outSize = runSession sessPtr $ do
   p <- input inProc
   let em = get_event_map p
   case em of
-    Just em -> liftIO $ do
+    Just em -> do
       let eml = F.toList em
-      outputArray (map fst eml) outLeft
-      outputArray (map snd eml) outRight
-      poke outSize $ fromIntegral $ S.length em
-      return 1
-    Nothing -> return 0
+      outputArray sessPtr (map fst eml) outLeft
+      outputArray sessPtr (map snd eml) outRight
+      liftIO $ poke outSize $ fromIntegral $ S.length em
+    Nothing -> panic "The input process does not take an event map."
   where get_event_map (PBinaryOp (PLinkParallel evm) _ _) = Just evm
         get_event_map (PUnaryOp (PRename evm) _) = Just evm
         get_event_map _ = Nothing
@@ -247,52 +276,50 @@ cpex_op_event_map inProc outLeft outRight outSize = do
 --         list is equivalent to the number of events in the corresponding
 --         process, and the number of lists equal to the number of processes.
 -- Error: If the process is of the wrong type.
-cpex_op_alphabets :: ProcPtr -> Ptr (Ptr (Ptr EventPtr)) -> Ptr (Ptr CUInt) ->
-  IO CUInt
-cpex_op_alphabets inProc outAlphas outSizes = do
+cpex_op_alphabets :: SessionPtr -> ProcPtr -> Ptr (Ptr (Ptr EventPtr)) ->
+  Ptr (Ptr CUInt) -> IO CUInt
+cpex_op_alphabets sessPtr inProc outAlphas outSizes = runSession sessPtr $ do
   p <- input inProc
+  t <- gets events
   let as = get_alphas p
   case as of
     Just as -> liftIO $ do
-      mapM ((mapM newStablePtr) . F.toList) (F.toList as)
+      mapM ((mapM (pullevent t)) . F.toList) (F.toList as)
         >>= mapM newArray
         >>= newArray
         >>= poke outAlphas
       sizesPtr <- newArray $ (map (fromIntegral . S.length) . F.toList) as
       poke outSizes sizesPtr
-      return 1
-    Nothing -> return 0
+    Nothing -> panic "The input process does not take alphabets."
   where get_alphas (POp (PAlphaParallel as) _) = Just as
         get_alphas _ = Nothing
 
 -- Input: PUnaryOp process.
 -- Output: The process contained within the operator.
 -- Error: If the process is not PUnaryOp.
-cpex_op_process :: ProcPtr -> Ptr ProcPtr -> IO CUInt
-cpex_op_process inProc outProc = do
+cpex_op_process :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> IO CUInt
+cpex_op_process sessPtr inProc outProc = runSession sessPtr $ do
   p <- input inProc
   let pn = next p
   case pn of
-    Just pn -> liftIO $ do
-      output pn outProc
-      return 1
-    Nothing -> return 0
+    Just pn -> do
+      output sessPtr pn outProc
+    Nothing -> panic "The input process is not a unary operator."
   where next (PUnaryOp _ pn) = Just pn
         next _ = Nothing
 
 -- Input: PBinaryOp process.
 -- Output: The two processes contained within the operator.
 -- Error: If the process is not PBinaryOp.
-cpex_op_process2 :: ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
-cpex_op_process2 inProc outLeft outRight = do
+cpex_op_process2 :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> Ptr ProcPtr -> IO CUInt
+cpex_op_process2 sessPtr inProc outLeft outRight = runSession sessPtr $ do
   p <- input inProc
   let pn = next p
   case pn of
-    Just (p1, p2) -> liftIO $ do
-      output p1 outLeft
-      output p2 outRight
-      return 1
-    Nothing -> return 0
+    Just (p1, p2) -> do
+      output sessPtr p1 outLeft
+      output sessPtr p2 outRight
+    Nothing -> panic "The input process is not a binary operator."
   where next (PBinaryOp _ p1 p2) = Just (p1, p2)
         next _ = Nothing
 
@@ -300,16 +327,16 @@ cpex_op_process2 inProc outLeft outRight = do
 -- Output: List of processes contained within the operator.
 --         Size of the list.
 -- Error: If the process is not POp.
-cpex_op_processes :: ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
-cpex_op_processes inProc outProcs outSize = do
+cpex_op_processes :: SessionPtr -> ProcPtr -> Ptr (Ptr ProcPtr) -> Ptr CUInt ->
+  IO CUInt
+cpex_op_processes sessPtr inProc outProcs outSize = runSession sessPtr $ do
   p <- input inProc
   let pn = next p
   case pn of
-    Just pn -> liftIO $ do
-      outputArray (F.toList pn) outProcs
-      poke outSize $ fromIntegral $ S.length pn
-      return 1
-    Nothing -> return 0
+    Just pn -> do
+      outputArray sessPtr (F.toList pn) outProcs
+      liftIO $ poke outSize $ fromIntegral $ S.length pn
+    Nothing -> panic "The input process is not an n-ary operator."
   where next (POp _ pn) = Just pn
         next _ = Nothing
 
@@ -317,17 +344,16 @@ cpex_op_processes inProc outProcs outSize = do
 -- Output: The expansion of the process.
 --         The string representation of the process.
 -- Error: If the process is not PProcCall.
-cpex_op_proccall :: ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
-cpex_op_proccall inProc outProc outName = do
+cpex_op_proccall :: SessionPtr -> ProcPtr -> Ptr ProcPtr -> Ptr CWString -> IO CUInt
+cpex_op_proccall sessPtr inProc outProc outName = runSession sessPtr $ do
   p <- input inProc
   let pn = next p
   case pn of
-    Just (n, pn) -> liftIO $ do
-      output pn outProc
-      name <- (newCWString . show . prettyPrint) n
-      poke outName name
-      return 1
-    Nothing -> return 0
+    Just (n, pn) -> do
+      output sessPtr pn outProc
+      name <- liftIO $ (newCWString . show . prettyPrint) n
+      liftIO $ poke outName name
+    Nothing -> panic "The input process is not a ProcCall."
   where next (PProcCall n pn) = Just (n, pn)
         next _ = Nothing
 
@@ -363,7 +389,7 @@ cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
   VProc expressionValue <- stringToValue TProc name
-  liftIO $ output expressionValue outProc
+  output sessPtr expressionValue outProc
 
 -- Input: CSPM session.
 --        String representing an event.
@@ -375,7 +401,7 @@ cpex_string_to_event sessPtr inName outEvent = runSession sessPtr $ do
   ev <- getEvent name
   -- Force evaluation of ev in case an error exists but has not evaluated yet.
   evaluated <- if ev == ev then return ev else return ev
-  liftIO $ output evaluated outEvent
+  output sessPtr evaluated outEvent
   where
     getEvent "_tick" = return Tick
     getEvent "_tau" = return Tau

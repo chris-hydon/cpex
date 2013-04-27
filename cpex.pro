@@ -8,6 +8,7 @@ HS_DEPS += \
     deepseq \
     ghc-prim \
     hashable \
+    hashtables \
     integer-gmp \
     libcspm \
     pretty \

@@ -17,10 +17,10 @@ Event PBase::opEvent() const
   }
 
   void * event = NULL;
-  cpex_op_event(_hsPtr, &event);
+  cpex_op_event(_session->getHsPtr(), _hsPtr, &event);
 
   QList<Event> a;
-  Event e(event);
+  Event e = Event::create(_session, event);
   a.append(e);
   _alphabets.append(a);
 
@@ -37,12 +37,12 @@ QList<Event> PBase::opEvents() const
 
   void ** events = NULL;
   quint32 num = 0;
-  cpex_op_events(_hsPtr, &events, &num);
+  cpex_op_events(_session->getHsPtr(), _hsPtr, &events, &num);
 
   QList<Event> a;
   for (quint32 i = 0; i < num; i++)
   {
-    a.append(Event(events[i]));
+    a.append(Event::create(_session, events[i]));
   }
   _alphabets.append(a);
 
@@ -61,12 +61,12 @@ QList<QPair<Event, Event> > PBase::opEventMap() const
   void ** eventsFrom = NULL;
   void ** eventsTo = NULL;
   quint32 num = 0;
-  cpex_op_event_map(_hsPtr, &eventsFrom, &eventsTo, &num);
+  cpex_op_event_map(_session->getHsPtr(), _hsPtr, &eventsFrom, &eventsTo, &num);
 
   for (quint32 i = 0; i < num; i++)
   {
-    Event from(eventsFrom[i]);
-    Event to(eventsTo[i]);
+    Event from = Event::create(_session, eventsFrom[i]);
+    Event to = Event::create(_session, eventsTo[i]);
     QPair<Event, Event> p(from, to);
     _eventMap.append(p);
   }
@@ -87,14 +87,14 @@ QList<QList<Event> > PBase::opAlphabets() const
   int num = opProcesses().count();
   void *** alphabets = NULL;
   quint32 * nums = NULL;
-  cpex_op_alphabets(_hsPtr, &alphabets, &nums);
+  cpex_op_alphabets(_session->getHsPtr(), _hsPtr, &alphabets, &nums);
 
   for (int i = 0; i < num; i++)
   {
     QList<Event> a;
     for (quint32 j = 0; j < nums[i]; j++)
     {
-      a.append(Event(alphabets[i][j]));
+      a.append(Event::create(_session, alphabets[i][j]));
     }
     _alphabets.append(a);
     free(alphabets[i]);
@@ -113,7 +113,7 @@ Process PBase::opProcess() const
   }
 
   void * proc = NULL;
-  cpex_op_process(_hsPtr, &proc);
+  cpex_op_process(_session->getHsPtr(), _hsPtr, &proc);
 
   _processes.append(Process::create(proc, _session));
   _loadedProcess = true;
@@ -129,7 +129,7 @@ QPair<Process, Process> PBase::opProcess2() const
 
   void * proc1 = NULL;
   void * proc2 = NULL;
-  cpex_op_process2(_hsPtr, &proc1, &proc2);
+  cpex_op_process2(_session->getHsPtr(), _hsPtr, &proc1, &proc2);
 
   _processes.append(Process::create(proc1, _session));
   _processes.append(Process::create(proc2, _session));
@@ -146,7 +146,7 @@ QList<Process> PBase::opProcesses() const
 
   void ** choices = NULL;
   quint32 num = 0;
-  cpex_op_processes(_hsPtr, &choices, &num);
+  cpex_op_processes(_session->getHsPtr(), _hsPtr, &choices, &num);
 
   for (quint32 i = 0; i < num; i++)
   {
@@ -166,7 +166,7 @@ QPair<Process, QString> PBase::opProcCall() const
 
   void * proc = NULL;
   wchar_t * str = NULL;
-  cpex_op_proccall(_hsPtr, &proc, &str);
+  cpex_op_proccall(_session->getHsPtr(), _hsPtr, &proc, &str);
 
   _processes.append(Process::create(proc, _session));
   _text = QString::fromWCharArray(str);

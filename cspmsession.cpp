@@ -6,7 +6,8 @@
 #include <QStringList>
 #include "programstate.h"
 
-CSPMSession::CSPMSession() : _procs(new QSet<Process>)
+CSPMSession::CSPMSession() : _procs(new QSet<Process>),
+  _events(new QHash<size_t, Event>)
 {
   _hsSession = cspm_session_create();
   _file = NULL;
@@ -50,6 +51,7 @@ bool CSPMSession::loadFile(const QString & fileName)
     _procCallNames = QStringList();
     _procCallNamesLoaded = false;
     _procs->clear();
+    _events->clear();
 
     QString disp = QFileInfo(_fileName).baseName().replace(QRegExp("[^0-9a-z]"), "");
     _displayName = disp;
@@ -77,7 +79,7 @@ Event CSPMSession::stringToEvent(const QString & expression) const
   void * event = NULL;
   int r = cpex_string_to_event(_hsSession,
     (void *) expression.toStdWString().c_str(), &event);
-  return (r ? Event(event) : Event());
+  return (r ? Event::create(this, event) : Event());
 }
 
 QStringList CSPMSession::getErrors() const
@@ -156,6 +158,11 @@ QStringList CSPMSession::procCallNames() const
 QSet<Process> * CSPMSession::procs() const
 {
   return _procs;
+}
+
+QHash<size_t, Event> * CSPMSession::events() const
+{
+  return _events;
 }
 
 void * CSPMSession::getHsPtr() const

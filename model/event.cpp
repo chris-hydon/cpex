@@ -44,6 +44,17 @@ Event::~Event()
 {
 }
 
+Event Event::create(const CSPMSession * session, void * hsPtr)
+{
+  Event e = session->events()->value((size_t) hsPtr);
+  if (!e.isValid())
+  {
+    e = Event(hsPtr);
+    session->events()->insert((size_t) hsPtr, e);
+  }
+  return e;
+}
+
 bool Event::isValid() const
 {
   return _d;
@@ -93,7 +104,7 @@ bool Event::operator ==(const Event & other) const
     return !other.isValid();
   }
   return other.isValid() &&
-    (_d == other._d || cpex_event_equal(_d->hsPtr, other._d->hsPtr));
+    (_d == other._d || _d->hsPtr == other._d->hsPtr);
 }
 
 Event & Event::operator =(const Event & other)

@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, ForeignFunctionInterface, ScopedTypeVariables,
     TypeSynonymInstances #-}
-module CSPM.Foreign (SessionPtr, runSession) where
+module CSPM.Foreign (NativeSessionMonad, SessionPtr, runSession, events) where
 
 import Control.Monad.State.Strict
 import CSPM
@@ -16,6 +16,8 @@ import Util.Annotated
 import Util.Exception
 import Util.PrettyPrint
 
+import qualified Data.HashTable.IO as H
+
 cINTERACTIVE_STATEMENT_EXPRESSION :: CUInt
 cINTERACTIVE_STATEMENT_EXPRESSION = 1
 
@@ -28,6 +30,7 @@ cINTERACTIVE_STATEMENT_ASSERTION = 3
 type FilePtr = StablePtr (CSPMFile Name)
 type InteractiveStmtPtr = StablePtr (InteractiveStmt Name)
 type SessionPtr = StablePtr (IORef NativeSession)
+type HashTable k v = H.BasicHashTable k v
 
 -- The actual foreign exports
 foreign export ccall
@@ -222,12 +225,14 @@ type NativeSessionMonad = StateT NativeSession IO
 newNativeSession :: MonadIO m => m NativeSession
 newNativeSession = do
     ms <- newCSPMSession
-    return $! NativeSession [] [] ms
+    t <- liftIO $ H.new
+    return $! NativeSession [] [] ms t
 
 data NativeSession = NativeSession {
         lastErrors :: [ErrorMessage],
         lastWarnings :: [ErrorMessage],
-        mainSession :: CSPMSession
+        mainSession :: CSPMSession,
+        events :: HashTable Event (StablePtr Event)
     }
 
 instance CSPMMonad NativeSessionMonad where

@@ -22,7 +22,6 @@ public:
 
   Event();
   Event(const Event &);
-  Event(void *);
   ~Event();
   bool isValid() const;
   QString displayText() const;
@@ -43,10 +42,12 @@ public:
   //           of a comma.
   static QString displayEventList(const CSPMSession *, QList<Event>,
     ListStyle = Event::Set);
+  static Event create(const CSPMSession *, void *);
 
 private:
   QExplicitlySharedDataPointer<EventData> _d;
 
+  Event(void *);
   void _lazyLoad() const;
 };
 

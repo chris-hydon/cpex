@@ -100,6 +100,12 @@ Process::Process(void * hsPtr, const CSPMSession * session)
       _d->backend = new PSlidingChoice(hsPtr, session);
       break;
     case 14:
+      _d->backend = new PSynchronisingExternalChoice(hsPtr, session);
+      break;
+    case 15:
+      _d->backend = new PSynchronisingInterrupt(hsPtr, session);
+      break;
+    case 16:
       _d->backend = new PProcCall(hsPtr, session);
       break;
   }
@@ -136,13 +142,14 @@ QList<QPair<Event, Process> > Process::transitions() const
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    cpex_transitions(_d->hsPtr, &hsEvents, &hsProcs, &transitionCount);
+    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, &hsEvents, &hsProcs,
+      &transitionCount);
 
     for (quint32 i = 0; i < transitionCount; i++)
     {
-      Event e(hsEvents[i]);
       Process p = Process::create(hsProcs[i], _d->session);
-      _d->next.append(QPair<Event, Process>(e, p));
+      _d->next.append(QPair<Event, Process>(Event::create(
+        _d->session, hsEvents[i]), p));
     }
 
     free(hsProcs);

@@ -20,9 +20,6 @@ channel picks, putsdown:PHILNAMES.FORKNAMES
 
 channel done
 
-TEST = sits.0 -> thinks.0 -> TEST [] thinks.1 -> TEST [] sits.1 -> thinks.2 -> TEST
-TEST1 = TEST \ {sits.0, sits.1}
-
 -- A philosopher thinks, sits down, picks up two forks, eats, puts down forks
 -- and gets up, in an unending cycle.	
 

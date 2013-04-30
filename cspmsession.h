@@ -14,6 +14,7 @@ public:
   const QString & fileName() const;
   const QString & displayName() const;
   bool loadFile(const QString & fileName);
+  bool reload();
   Process compileExpression(const QString & expression) const;
   Event stringToEvent(const QString & expression) const;
   QStringList getErrors() const;
@@ -22,7 +23,6 @@ public:
   QSet<Process> * procs() const;
   QHash<size_t, Event> * events() const;
   void * getHsPtr() const;
-  bool operator ==(const CSPMSession & other) const;
 
 private:
   void * _hsSession;

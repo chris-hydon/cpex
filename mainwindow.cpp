@@ -80,13 +80,37 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   // Menu bar
   uiMenu = new QMenuBar(this);
   uiMenu->setGeometry(QRect(0, 0, 836, 23));
-  uiMenuFile = new QMenu(uiMenu);
-  uiMenuFile->setTitle(tr("&File"));
-  uiMenuFileOpen = new QAction(uiMenuFile);
-  uiMenuFileOpen->setText(tr("&Open"));
+  uiMenuSession = new QMenu(uiMenu);
+  uiMenuSession->setTitle(tr("&Session"));
+  uiMenuSessionOpen = new QAction(uiMenuSession);
+  uiMenuSessionOpen->setText(tr("&Open"));
+  uiMenuSessionOpen->setStatusTip(tr("Open a CSP file to explore."));
+  uiMenuSessionReload = new QAction(uiMenuSession);
+  uiMenuSessionReload->setStatusTip(tr("Reload the CSP file into the current session."));
+  uiMenuSessionReload->setVisible(false);
+  uiMenuSessionReloadAll = new QAction(uiMenuSession);
+  uiMenuSessionReloadAll->setText(tr("Reload All"));
+  uiMenuSessionReloadAll->setStatusTip(tr(
+    "Reload all currently open sessions from their respective files."));
+  uiMenuSessionClose = new QAction(uiMenuSession);
+  uiMenuSessionClose->setStatusTip(tr(
+    "Close the current session and remove it from the list."));
+  uiMenuSessionClose->setVisible(false);
+  uiMenuSessionCloseAll = new QAction(uiMenuSession);
+  uiMenuSessionCloseAll->setText(tr("Close All"));
+  uiMenuSessionCloseAll->setStatusTip(tr(
+    "Close all sessions and remove them from the list, and close all tabs."));
+  uiMenuSessionExit = new QAction(uiMenuSession);
+  uiMenuSessionExit->setText(tr("E&xit"));
+  uiMenuSessionExit->setStatusTip(tr("Close the program."));
   // Menu bar actions.
-  uiMenu->addAction(uiMenuFile->menuAction());
-  uiMenuFile->addAction(uiMenuFileOpen);
+  uiMenu->addAction(uiMenuSession->menuAction());
+  uiMenuSession->addAction(uiMenuSessionOpen);
+  uiMenuSession->addAction(uiMenuSessionReload);
+  uiMenuSession->addAction(uiMenuSessionReloadAll);
+  uiMenuSession->addAction(uiMenuSessionClose);
+  uiMenuSession->addAction(uiMenuSessionCloseAll);
+  uiMenuSession->addAction(uiMenuSessionExit);
 
   // Status bar
   uiStatus = new QStatusBar(this);
@@ -101,11 +125,12 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiSessions->setModel(sessModel);
 
   // Signals and slots
-  connect(uiMenuFileOpen, SIGNAL(triggered()), this, SLOT(actionOpen()));
-  connect(
-    this, SIGNAL(fileLoaded(CSPMSession *)),
-    sessModel, SLOT(sessionLoaded(CSPMSession *))
-  );
+  connect(uiMenuSessionOpen, SIGNAL(triggered()), this, SLOT(actionOpen()));
+  connect(uiMenuSessionReload, SIGNAL(triggered()), this, SLOT(actionReload()));
+  connect(uiMenuSessionReloadAll, SIGNAL(triggered()), this, SLOT(actionReloadAll()));
+  connect(uiMenuSessionClose, SIGNAL(triggered()), this, SLOT(actionClose()));
+  connect(uiMenuSessionCloseAll, SIGNAL(triggered()), this, SLOT(actionCloseAll()));
+  connect(uiMenuSessionExit, SIGNAL(triggered()), this, SLOT(close()));
   connect(
     uiSessions, SIGNAL(activated(const QModelIndex &)),
     sessModel, SLOT(itemActivated(const QModelIndex &))
@@ -115,6 +140,13 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     this, SLOT(closeTab(int))
   );
   connect(uiNewTabButton, SIGNAL(clicked()), this, SLOT(newBlankTab()));
+
+  // A file may be passed as an argument to load on launch.
+  QStringList args = QApplication::arguments();
+  if (args.length() > 1)
+  {
+    newSession(args.last());
+  }
 }
 
 MainWindow::~MainWindow()
@@ -147,19 +179,84 @@ void MainWindow::actionOpen()
     QDir::homePath(), tr("CSP definition files (*.csp);;All files (*.*)"));
   if (file != NULL)
   {
-    QString status;
-    CSPMSession * opened = ProgramState::newSession(file);
-    if (opened == NULL)
+    newSession(file);
+  }
+}
+
+void MainWindow::actionReload()
+{
+  QString status;
+  CSPMSession * session = ProgramState::currentSession();
+  if (session->reload())
+  {
+    closeSessionTabs(session);
+    static_cast<SessionModel *>(uiSessions->model())->reloadSession(session);
+    status = tr("Reloaded file: %1").arg(session->fileName());
+  }
+  else
+  {
+    status = tr("Error while reloading file: %1").arg(session->fileName());
+  }
+  uiStatus->showMessage(status, 5000);
+}
+
+void MainWindow::actionReloadAll()
+{
+  QString status;
+  QStringList failures;
+  foreach (CSPMSession * session, ProgramState::getSessions().values())
+  {
+    if (session->reload())
     {
-      status = tr("Error while loading file: %1").arg(file);
+      closeSessionTabs(session);
+      static_cast<SessionModel *>(uiSessions->model())->reloadSession(session);
     }
     else
     {
-      status = tr("Loaded file: %1").arg(file);
-      emit fileLoaded(opened);
+      failures << session->displayName();
     }
-    uiStatus->showMessage(tr(status.toAscii()), 5000);
   }
+
+  if (failures.isEmpty())
+  {
+    status = tr("Successfully reloaded all open files.");
+  }
+  else
+  {
+    status = tr("Error while reloading the following sessions: %1")
+      .arg(failures.join(", "));
+  }
+  uiStatus->showMessage(status, 5000);
+}
+
+void MainWindow::actionClose()
+{
+  CSPMSession * session = ProgramState::currentSession();
+  closeSessionTabs(session);
+  static_cast<SessionModel *>(uiSessions->model())->removeSession(session);
+  ProgramState::deleteSession(session);
+  setCurrentSession(NULL);
+}
+
+void MainWindow::actionCloseAll()
+{
+  // Close all tabs.
+  while (uiTabs->count() > 0)
+  {
+    delete uiTabs->widget(0);
+  }
+  newBlankTab();
+
+  // Remove sessions from the session view pane.
+  static_cast<SessionModel *>(uiSessions->model())->removeAllSessions();
+
+  // Delete all sessions internally.
+  foreach (CSPMSession * session, ProgramState::getSessions().values())
+  {
+    ProgramState::deleteSession(session);
+  }
+
+  setCurrentSession(NULL);
 }
 
 void MainWindow::setTabExpression(Tab * tab, const Expression & expr)
@@ -207,6 +304,56 @@ void MainWindow::closeTab(int index)
 Tab * MainWindow::currentTab()
 {
   return static_cast<Tab *>(uiTabs->currentWidget());
+}
+
+void MainWindow::closeSessionTabs(const CSPMSession * session)
+{
+  int count = uiTabs->count();
+  for (int i = 0; i < count; i++)
+  {
+    Tab * tab = static_cast<Tab *>(uiTabs->widget(i));
+    if (tab->expression().isValid() &&
+      tab->expression().process().session() == session)
+    {
+      // Close the tab and then decrement i and count (since the indices change).
+      closeTab(i--);
+      count--;
+    }
+  }
+}
+
+void MainWindow::newSession(const QString & file)
+{
+  QString status;
+  CSPMSession * opened = ProgramState::newSession(file);
+  if (opened == NULL)
+  {
+    status = tr("Error while loading file: %1").arg(file);
+  }
+  else
+  {
+    status = tr("Loaded file: %1").arg(file);
+    static_cast<SessionModel *>(uiSessions->model())->addSession(opened);
+    setCurrentSession(opened);
+  }
+  uiStatus->showMessage(status, 5000);
+}
+
+void MainWindow::setCurrentSession(CSPMSession * session)
+{
+  ProgramState::setCurrentSession(session);
+  if (session != NULL)
+  {
+    uiMenuSessionClose->setText(tr("Close %1").arg(session->displayName()));
+    uiMenuSessionClose->setVisible(true);
+    uiMenuSessionReload->setText(tr("Reload %1").arg(session->displayName()));
+    uiMenuSessionReload->setVisible(true);
+  }
+  else
+  {
+    uiMenuSessionClose->setVisible(false);
+    uiMenuSessionReload->setVisible(false);
+  }
 }
 
 void MainWindow::newTabFromExpression(const Expression & expression)

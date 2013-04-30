@@ -66,6 +66,32 @@ bool CSPMSession::loadFile(const QString & fileName)
   return false;
 }
 
+bool CSPMSession::reload()
+{
+  if (_file != NULL)
+  {
+    void * sess = cspm_session_create();
+    void * file;
+    if (cspm_session_load_file(sess, (void *) _fileName.toStdWString().c_str(), &file))
+    {
+      cspm_file_free(_file);
+      cspm_session_free(_hsSession);
+      _file = file;
+      _hsSession = sess;
+      _procCallNames = QStringList();
+      _procCallNamesLoaded = false;
+      _procs->clear();
+      _events->clear();
+      return true;
+    }
+    return false;
+  }
+
+  // No file, so this is a blank session - we don't add anything so there's nothing
+  // to change, nothing to do.
+  return true;
+}
+
 Process CSPMSession::compileExpression(const QString & expression) const
 {
   void * proc = NULL;
@@ -168,10 +194,4 @@ QHash<size_t, Event> * CSPMSession::events() const
 void * CSPMSession::getHsPtr() const
 {
   return _hsSession;
-}
-
-bool CSPMSession::operator ==(const CSPMSession & other) const
-{
-  // Two sessions are equal if they point to the same Haskell session.
-  return other._hsSession == _hsSession;
 }

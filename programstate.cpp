@@ -15,7 +15,6 @@ CSPMSession * ProgramState::newSession(const QString & fileName)
   if (session->loadFile(fileName))
   {
     ProgramState::_sessions.insert(session->displayName(), session);
-    ProgramState::_currentSession = session;
     return session;
   }
   else
@@ -23,6 +22,26 @@ CSPMSession * ProgramState::newSession(const QString & fileName)
     delete session;
     return NULL;
   }
+}
+
+void ProgramState::deleteSession(CSPMSession * session)
+{
+  // Do nothing if this is the blank session - it will never change and ought to
+  // always exist.
+  if (session == _blankSession)
+  {
+    return;
+  }
+
+  // Nullify the current session if it is the one we're removing.
+  if (session == _currentSession)
+  {
+    _currentSession = NULL;
+  }
+
+  // Delete it and remove it from the list of sessions.
+  ProgramState::_sessions.remove(session->displayName());
+  delete session;
 }
 
 CSPMSession * ProgramState::currentSession()

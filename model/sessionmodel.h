@@ -18,12 +18,16 @@ public:
   int columnCount(const QModelIndex & parent = QModelIndex()) const;
   QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
 
+  void addSession(CSPMSession *);
+  void reloadSession(CSPMSession *);
+  void removeSession(CSPMSession *);
+  void removeAllSessions();
+
 public slots:
-  void sessionLoaded(CSPMSession * session);
   void itemActivated(const QModelIndex & index);
 
 private:
-  QList<const SessionItem *> _sessions;
+  QList<SessionItem *> _sessions;
 };
 
 #endif // SESSIONMODEL_H

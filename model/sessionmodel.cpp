@@ -20,7 +20,7 @@ public:
   {
   }
 
-  SessionItem(const SessionItem * parent, const QString & displayStr) :
+  SessionItem(SessionItem * parent, const QString & displayStr) :
     _type(ProcCall), _session(NULL), _parent(parent), _displayStr(displayStr)
   {
   }
@@ -36,7 +36,7 @@ public:
   QList<SessionItem *> _procs;
   const Type _type;
   CSPMSession * _session;
-  const SessionItem * _parent;
+  SessionItem * _parent;
   const QString _displayStr;
 };
 
@@ -75,7 +75,7 @@ QModelIndex SessionModel::parent(const QModelIndex & index) const
     return QModelIndex();
   }
 
-  const SessionItem * item = static_cast<const SessionItem *>(index.internalPointer());
+  SessionItem * item = static_cast<SessionItem *>(index.internalPointer());
   if (item->_type == SessionItem::ProcCall)
   {
     int row = _sessions.indexOf(item->_parent);
@@ -91,7 +91,7 @@ int SessionModel::rowCount(const QModelIndex & parent) const
     return _sessions.count();
   }
 
-  const SessionItem * parentItem = static_cast<const SessionItem *>(parent.internalPointer());
+  SessionItem * parentItem = static_cast<SessionItem *>(parent.internalPointer());
   if (parentItem->_type == SessionItem::Session)
   {
     return parentItem->_procs.count();
@@ -112,7 +112,7 @@ QVariant SessionModel::data(const QModelIndex & index, int role) const
     return QVariant();
   }
 
-  const SessionItem * item = static_cast<const SessionItem *>(index.internalPointer());
+  SessionItem * item = static_cast<SessionItem *>(index.internalPointer());
   if (item->_type == SessionItem::ProcCall)
   {
     return item->_displayStr;
@@ -123,7 +123,7 @@ QVariant SessionModel::data(const QModelIndex & index, int role) const
   }
 }
 
-void SessionModel::sessionLoaded(CSPMSession * session)
+void SessionModel::addSession(CSPMSession * session)
 {
   emit layoutAboutToBeChanged();
   SessionItem * sessionItem = new SessionItem(session);
@@ -135,6 +135,58 @@ void SessionModel::sessionLoaded(CSPMSession * session)
     sessionItem->_procs.append(new SessionItem(sessionItem, proc));
   }
 
+  emit layoutChanged();
+}
+
+void SessionModel::reloadSession(CSPMSession * session)
+{
+  for (int i = 0; i < _sessions.count(); i++)
+  {
+    SessionItem * sessionItem = _sessions[i];
+    if (sessionItem->_session == session)
+    {
+      emit layoutAboutToBeChanged();
+
+      while (!sessionItem->_procs.isEmpty())
+      {
+        delete sessionItem->_procs.takeFirst();
+      }
+
+      QStringList procs = session->procCallNames();
+      foreach (QString proc, procs)
+      {
+        sessionItem->_procs.append(new SessionItem(sessionItem, proc));
+      }
+
+      emit layoutChanged();
+      break;
+    }
+  }
+}
+
+void SessionModel::removeSession(CSPMSession * session)
+{
+  for (int i = 0; i < _sessions.count(); i++)
+  {
+    SessionItem * sessionItem = _sessions[i];
+    if (sessionItem->_session == session)
+    {
+      emit layoutAboutToBeChanged();
+      _sessions.removeAt(i);
+      delete sessionItem;
+      emit layoutChanged();
+      break;
+    }
+  }
+}
+
+void SessionModel::removeAllSessions()
+{
+  emit layoutAboutToBeChanged();
+  while (!_sessions.isEmpty())
+  {
+    delete _sessions.takeFirst();
+  }
   emit layoutChanged();
 }
 
@@ -151,9 +203,9 @@ void SessionModel::itemActivated(const QModelIndex & index)
     session = item->_session;
   }
 
-  if (!(*session == *ProgramState::currentSession()))
+  if (!(session == ProgramState::currentSession()))
   {
-    ProgramState::setCurrentSession(session);
+    MainWindow::get()->setCurrentSession(session);
   }
 
   if (item->_type == SessionItem::ProcCall)

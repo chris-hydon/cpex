@@ -9,6 +9,7 @@ class ProgramState
 public:
   static QMap<QString, CSPMSession *> getSessions();
   static CSPMSession * newSession(const QString & fileName);
+  static void deleteSession(CSPMSession * session);
   static CSPMSession * currentSession();
   static CSPMSession * blankSession();
   static void setCurrentSession(CSPMSession * session);

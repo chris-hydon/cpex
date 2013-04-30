@@ -32,16 +32,20 @@ public:
   void setTabExpression(Tab *, const Expression &);
   void setCurrentTab(Tab *);
   Tab * currentTab();
+  void closeSessionTabs(const CSPMSession *);
+  void newSession(const QString &);
+  void setCurrentSession(CSPMSession *);
 
 public slots:
   void actionOpen();
+  void actionReload();
+  void actionReloadAll();
+  void actionClose();
+  void actionCloseAll();
   void newBlankTab();
   void closeTab(int index = -1);
   void newTabFromExpression(const Expression & = Expression());
   void setTabFromExpression(const Expression & = Expression());
-
-signals:
-  void fileLoaded(CSPMSession * session);
 
 private:
   void _invalidExpressionMessage();
@@ -50,8 +54,13 @@ private:
 
   // UI elements
   QMenuBar * uiMenu;
-  QMenu * uiMenuFile;
-  QAction * uiMenuFileOpen;
+  QMenu * uiMenuSession;
+  QAction * uiMenuSessionOpen;
+  QAction * uiMenuSessionExit;
+  QAction * uiMenuSessionClose;
+  QAction * uiMenuSessionReload;
+  QAction * uiMenuSessionCloseAll;
+  QAction * uiMenuSessionReloadAll;
   QStatusBar * uiStatus;
   QWidget * uiCentral;
   QSplitter * uiSplitter;

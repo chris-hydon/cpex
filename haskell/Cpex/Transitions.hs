@@ -240,11 +240,24 @@ transitions o (PBinaryOp (PLinkParallel evm) p1 p2) =
 
 -- Transitions of a chase-compressed process are those of the process after
 -- silently and recursively following some tau if any exist.
-transitions o (PUnaryOp (POperator (Chase b)) p) = chase (transitions o p)
+transitions o (PUnaryOp (POperator (Chase _)) p) = chase $ transitions o p
   where chase ts
           | taus == [] = ts
           | otherwise  = chase $ transitions o $ (snd . head) taus
           where taus = filter ((== Tau) . fst) ts
+
+-- Transitions of a prioritise-compressed process are those of the process whose
+-- events occur in the first set containing events offered. Tau and tick are
+-- implicitly in the first event set.
+transitions o (PUnaryOp (POperator (Prioritise _ evss)) p) =
+  prioritise (S.viewl evss) $ transitions o p
+  where prioritise S.EmptyL = prioritise' (S.singleton (Tau S.<| Tick S.<| S.empty))
+        prioritise (evs S.:< evss) = prioritise' ((Tau S.<| Tick S.<| evs) S.<| evss)
+  -- Iterate from left to right: if some transition is found with its event in the
+  -- current set of events, we keep only transitions with events in that set.
+        prioritise' evss ts = F.foldl (filterEvents ts) [] evss
+        filterEvents ts [] evs = filter ((flip F.elem $ evs) . fst) ts
+        filterEvents ts ts' evs = ts'
 
 -- Other compressions are semantics-preserving, so the transitions are simply
 -- those of the process itself.

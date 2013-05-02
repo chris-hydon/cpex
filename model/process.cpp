@@ -142,7 +142,7 @@ QList<QPair<Event, Process> > Process::transitions() const
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, &hsEvents, &hsProcs,
+    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, true, &hsEvents, &hsProcs,
       &transitionCount);
 
     for (quint32 i = 0; i < transitionCount; i++)

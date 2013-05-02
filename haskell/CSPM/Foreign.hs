@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, ForeignFunctionInterface, ScopedTypeVariables,
     TypeSynonymInstances #-}
-module CSPM.Foreign (NativeSessionMonad, SessionPtr, runSession, events) where
+module CSPM.Foreign (NativeSessionMonad, SessionPtr, runSession, events, omega) where
 
 import Control.Monad.State.Strict
 import CSPM
@@ -17,6 +17,7 @@ import Util.Exception
 import Util.PrettyPrint
 
 import qualified Data.HashTable.IO as H
+import qualified Data.Sequence as S
 
 cINTERACTIVE_STATEMENT_EXPRESSION :: CUInt
 cINTERACTIVE_STATEMENT_EXPRESSION = 1
@@ -75,7 +76,8 @@ cspm_session_create :: IO SessionPtr
 cspm_session_create = do
     sess <- newNativeSession
     ioref <- newIORef sess
-    newStablePtr ioref
+    sessPtr <- newStablePtr ioref
+    return sessPtr
 
 cspm_session_free :: SessionPtr -> IO ()
 cspm_session_free sessPtr = freeStablePtr sessPtr
@@ -226,13 +228,17 @@ newNativeSession :: MonadIO m => m NativeSession
 newNativeSession = do
     ms <- newCSPMSession
     t <- liftIO $ H.new
-    return $! NativeSession [] [] ms t
+    -- Add omega symbol for omega semantics.
+    o_name <- mkWiredInName (UnQual (OccName "\x03A9")) False
+    let o = PProcCall (procName (scopeId o_name [] Nothing)) (POp PExternalChoice S.empty)
+    return $! NativeSession [] [] ms t o
 
 data NativeSession = NativeSession {
         lastErrors :: [ErrorMessage],
         lastWarnings :: [ErrorMessage],
         mainSession :: CSPMSession,
-        events :: HashTable Event (StablePtr Event)
+        events :: HashTable Event (StablePtr Event),
+        omega :: UProc
     }
 
 instance CSPMMonad NativeSessionMonad where

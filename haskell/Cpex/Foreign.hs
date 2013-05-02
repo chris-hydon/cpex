@@ -31,7 +31,7 @@ type HashTable k v = H.BasicHashTable k v
 
 -- Foreign exports: Each Ptr argument (not StablePtr) is intended for output.
 foreign export ccall
-  cpex_transitions :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+  cpex_transitions :: SessionPtr -> ProcPtr -> Bool -> Ptr (Ptr EventPtr) ->
     Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
 foreign export ccall
   cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
@@ -81,11 +81,6 @@ foreign export ccall
 -- Builtin process STOP.
 csp_stop_id = procName (scopeId (builtInName "STOP") [] Nothing)
 csp_stop = PProcCall csp_stop_id (POp PExternalChoice S.empty)
-
--- Given a transition, replaces the process with STOP if the event is Tick.
-simplify :: (Event, UProc) -> (Event, UProc)
-simplify (Tick, _) = (Tick, csp_stop)
-simplify x = x
 
 -- Given a process, returns a numeric value representing the operator.
 operatorNum :: UProc -> Int
@@ -138,18 +133,26 @@ pullevent t e = do
       H.insert t e ptr
       return ptr
 
--- Input: Stable pointer to a process.
+-- Input: Session pointer.
+--        Stable pointer to a process.
+--        Boolean: False = synchronous (FDR 2 style) termination semantics,
+--                 True = asynchronous (omega style).
 -- Output: Array of events offered by the process (may include duplicates).
 --         Array of processes resulting from applying the respective event.
 --         Size of array.
-cpex_transitions :: SessionPtr -> ProcPtr -> Ptr (Ptr EventPtr) ->
+cpex_transitions :: SessionPtr -> ProcPtr -> Bool -> Ptr (Ptr EventPtr) ->
   Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
-cpex_transitions sessPtr inProc outEvents outProcs outCount = runSession sessPtr $ do
-  p <- input inProc
-  let (es, pns) = unzip $ map simplify $ transitions p
-  outputArray sessPtr es outEvents
-  outputArray sessPtr pns outProcs
-  liftIO $ poke outCount $ fromIntegral $ length es
+cpex_transitions sessPtr inProc inOmega outEvents outProcs outCount =
+  runSession sessPtr $ do
+    p <- input inProc
+    o <- gets omega
+    let (es, pns) = unzip $ map (simplify (if inOmega then o else csp_stop)) $
+          transitions (if inOmega then Just o else Nothing) p
+    outputArray sessPtr es outEvents
+    outputArray sessPtr pns outProcs
+    liftIO $ poke outCount $ fromIntegral $ length es
+    where simplify o (Tick, _) = (Tick, o)
+          simplify _ x = x
 
 -- Input: Event.
 -- Output: A string representation of that event, suitable for output.

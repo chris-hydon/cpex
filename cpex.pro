@@ -12,7 +12,8 @@ HS_DEPS += \
     integer-gmp \
     libcspm \
     pretty \
-    transformers
+    transformers \
+    value-supply
 
 HS_SOURCES += \
     haskell/Cpex/Foreign.hs \

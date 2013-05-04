@@ -5,174 +5,160 @@
 #include "cspmsession.h"
 
 PBase::PBase(void * hsPtr, const CSPMSession * session, PType type) : type(type),
-  _session(session), _hsPtr(hsPtr), _loadedEvent(false), _loadedProcess(false)
+  _session(session), _hsPtr(hsPtr)
 {
 }
 
-Event PBase::opEvent() const
+Event PPrefix::opEvent() const
 {
-  if (_loadedEvent)
+  if (!_loadedEvent)
   {
-    return _alphabets.at(0).at(0);
+    void * event = NULL;
+    cpex_op_event(_session->getHsPtr(), _hsPtr, &event);
+
+    _event = Event::create(_session, event);
+    _loadedEvent = true;
   }
 
-  void * event = NULL;
-  cpex_op_event(_session->getHsPtr(), _hsPtr, &event);
-
-  QList<Event> a;
-  Event e = Event::create(_session, event);
-  a.append(e);
-  _alphabets.append(a);
-
-  _loadedEvent = true;
-  return e;
+  return _event;
 }
 
-QList<Event> PBase::opEvents() const
+QList<Event> PWithEventList::opEvents() const
 {
-  if (_loadedEvent)
+  if (!_loadedEvent)
   {
-    return _alphabets.at(0);
+    void ** events = NULL;
+    quint32 num = 0;
+    cpex_op_events(_session->getHsPtr(), _hsPtr, &events, &num);
+
+    for (quint32 i = 0; i < num; i++)
+    {
+      _events.append(Event::create(_session, events[i]));
+    }
+
+    free(events);
+    _loadedEvent = true;
   }
 
-  void ** events = NULL;
-  quint32 num = 0;
-  cpex_op_events(_session->getHsPtr(), _hsPtr, &events, &num);
-
-  QList<Event> a;
-  for (quint32 i = 0; i < num; i++)
-  {
-    a.append(Event::create(_session, events[i]));
-  }
-  _alphabets.append(a);
-
-  free(events);
-  _loadedEvent = true;
-  return a;
+  return _events;
 }
 
-QList<QPair<Event, Event> > PBase::opEventMap() const
+QList<QPair<Event, Event> > PWithEventMap::opEventMap() const
 {
-  if (_loadedEvent)
+  if (!_loadedEvent)
   {
-    return _eventMap;
+    void ** eventsFrom = NULL;
+    void ** eventsTo = NULL;
+    quint32 num = 0;
+    cpex_op_event_map(_session->getHsPtr(), _hsPtr, &eventsFrom, &eventsTo, &num);
+
+    for (quint32 i = 0; i < num; i++)
+    {
+      Event from = Event::create(_session, eventsFrom[i]);
+      Event to = Event::create(_session, eventsTo[i]);
+      QPair<Event, Event> p(from, to);
+      _eventMap.append(p);
+    }
+
+    free(eventsFrom);
+    free(eventsTo);
+    _loadedEvent = true;
   }
 
-  void ** eventsFrom = NULL;
-  void ** eventsTo = NULL;
-  quint32 num = 0;
-  cpex_op_event_map(_session->getHsPtr(), _hsPtr, &eventsFrom, &eventsTo, &num);
-
-  for (quint32 i = 0; i < num; i++)
-  {
-    Event from = Event::create(_session, eventsFrom[i]);
-    Event to = Event::create(_session, eventsTo[i]);
-    QPair<Event, Event> p(from, to);
-    _eventMap.append(p);
-  }
-
-  free(eventsFrom);
-  free(eventsTo);
-  _loadedEvent = true;
   return _eventMap;
 }
 
-QList<QList<Event> > PBase::opAlphabets() const
+QList<QList<Event> > PAlphaParallel::opAlphabets() const
 {
-  if (_loadedEvent)
+  if (!_loadedEvent)
   {
-    return _alphabets;
-  }
+    int num = opProcesses().count();
+    void *** alphabets = NULL;
+    quint32 * nums = NULL;
+    cpex_op_alphabets(_session->getHsPtr(), _hsPtr, &alphabets, &nums);
 
-  int num = opProcesses().count();
-  void *** alphabets = NULL;
-  quint32 * nums = NULL;
-  cpex_op_alphabets(_session->getHsPtr(), _hsPtr, &alphabets, &nums);
-
-  for (int i = 0; i < num; i++)
-  {
-    QList<Event> a;
-    for (quint32 j = 0; j < nums[i]; j++)
+    for (int i = 0; i < num; i++)
     {
-      a.append(Event::create(_session, alphabets[i][j]));
+      QList<Event> a;
+      for (quint32 j = 0; j < nums[i]; j++)
+      {
+        a.append(Event::create(_session, alphabets[i][j]));
+      }
+      _alphabets.append(a);
+      free(alphabets[i]);
     }
-    _alphabets.append(a);
-    free(alphabets[i]);
+
+    free(alphabets);
+    _loadedEvent = true;
   }
 
-  free(alphabets);
-  _loadedEvent = true;
   return _alphabets;
 }
 
-Process PBase::opProcess() const
+Process PUnary::opProcess() const
 {
-  if (_loadedProcess)
+  if (!_loadedProcess)
   {
-    return _processes.at(0);
+    void * proc = NULL;
+    cpex_op_process(_session->getHsPtr(), _hsPtr, &proc);
+
+    _process = Process::create(proc, _session);
+    _loadedProcess = true;
   }
 
-  void * proc = NULL;
-  cpex_op_process(_session->getHsPtr(), _hsPtr, &proc);
-
-  _processes.append(Process::create(proc, _session));
-  _loadedProcess = true;
-  return _processes.at(0);
+  return _process;
 }
 
-QPair<Process, Process> PBase::opProcess2() const
+QPair<Process, Process> PBinary::opProcess2() const
 {
-  if (_loadedProcess)
+  if (!_loadedProcess)
   {
-    return QPair<Process, Process>(_processes.at(0), _processes.at(1));
+    void * proc1 = NULL;
+    void * proc2 = NULL;
+    cpex_op_process2(_session->getHsPtr(), _hsPtr, &proc1, &proc2);
+
+    _processes = QPair<Process, Process>(
+      Process::create(proc1, _session), Process::create(proc2, _session));
+    _loadedProcess = true;
   }
 
-  void * proc1 = NULL;
-  void * proc2 = NULL;
-  cpex_op_process2(_session->getHsPtr(), _hsPtr, &proc1, &proc2);
-
-  _processes.append(Process::create(proc1, _session));
-  _processes.append(Process::create(proc2, _session));
-  _loadedProcess = true;
-  return QPair<Process, Process>(_processes.at(0), _processes.at(1));
-}
-
-QList<Process> PBase::opProcesses() const
-{
-  if (_loadedProcess)
-  {
-    return _processes;
-  }
-
-  void ** choices = NULL;
-  quint32 num = 0;
-  cpex_op_processes(_session->getHsPtr(), _hsPtr, &choices, &num);
-
-  for (quint32 i = 0; i < num; i++)
-  {
-    _processes.append(Process::create(choices[i], _session));
-  }
-  free(choices);
-  _loadedProcess = true;
   return _processes;
 }
 
-QPair<Process, QString> PBase::opProcCall() const
+QList<Process> PNary::opProcesses() const
 {
-  if (_loadedProcess)
+  if (!_loadedProcess)
   {
-    return QPair<Process, QString>(_processes.at(0), _text);
+    void ** choices = NULL;
+    quint32 num = 0;
+    cpex_op_processes(_session->getHsPtr(), _hsPtr, &choices, &num);
+
+    for (quint32 i = 0; i < num; i++)
+    {
+      _processes.append(Process::create(choices[i], _session));
+    }
+    free(choices);
+    _loadedProcess = true;
   }
 
-  void * proc = NULL;
-  wchar_t * str = NULL;
-  cpex_op_proccall(_session->getHsPtr(), _hsPtr, &proc, &str);
+  return _processes;
+}
 
-  _processes.append(Process::create(proc, _session));
-  _text = QString::fromWCharArray(str);
-  free(str);
-  _loadedProcess = true;
-  return QPair<Process, QString>(_processes.at(0), _text);
+QPair<Process, QString> PProcCall::opProcCall() const
+{
+  if (!_loadedProcess)
+  {
+    void * proc = NULL;
+    wchar_t * str = NULL;
+    cpex_op_proccall(_session->getHsPtr(), _hsPtr, &proc, &str);
+
+    _proccall = QPair<Process, QString>(
+      Process::create(proc, _session), QString::fromWCharArray(str));
+    free(str);
+    _loadedProcess = true;
+  }
+
+  return _proccall;
 }
 
 QString PAlphaParallel::toolTip() const

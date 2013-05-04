@@ -33,93 +33,142 @@ public:
   {
     AlphaParallel, Exception, ExternalChoice, GenParallel, Hide, InternalChoice,
     Interleave, Interrupt, LinkParallel, Operator, Prefix, Rename, SequentialComp,
-    SlidingChoice, SynchronisingExternalChoice, SynchronisingInterrupt, ProcCall
+    SlidingChoice, SynchronisingExternalChoice, SynchronisingInterrupt, ProcCall,
+    Invalid
   };
   const PType type;
 
-  // Use the visitor pattern to test equality. Default to false, then allow each
-  // type to implement its own isEqual.
-  virtual bool isEqual(const PAlphaParallel *) const { return false; }
-  virtual bool isEqual(const PException *) const { return false; }
-  virtual bool isEqual(const PExternalChoice *) const { return false; }
-  virtual bool isEqual(const PGenParallel *) const { return false; }
-  virtual bool isEqual(const PHide *) const { return false; }
-  virtual bool isEqual(const PInternalChoice *) const { return false; }
-  virtual bool isEqual(const PInterleave *) const { return false; }
-  virtual bool isEqual(const PInterrupt *) const { return false; }
-  virtual bool isEqual(const PLinkParallel *) const { return false; }
-  virtual bool isEqual(const POperator *) const { return false; }
-  virtual bool isEqual(const PPrefix *) const { return false; }
-  virtual bool isEqual(const PRename *) const { return false; }
-  virtual bool isEqual(const PSequentialComp *) const { return false; }
-  virtual bool isEqual(const PSlidingChoice *) const { return false; }
-  virtual bool isEqual(const PSynchronisingExternalChoice *) const { return false; }
-  virtual bool isEqual(const PSynchronisingInterrupt *) const { return false; }
-  virtual bool isEqual(const PProcCall *) const { return false; }
+  virtual ~PBase() {}
 
-  // Each implementation must call other.isEqual(this) to complete the visitor loop.
-  virtual bool operator ==(const PBase & other) const = 0;
-
-  // Operators may give a tool tip.
+  /**
+   * Gives the tool tip text. Default implementation is the empty string.
+   */
   virtual QString toolTip() const { return QString(); }
 
-  // Operators must be able to explain why an event is or is not offered.
+  /**
+   * Explains why, given a list of events, no event in the list is offered. This
+   * method is assumed only to be called when it is in fact true that no event in
+   * the list is offered.
+   */
   virtual QString whyEvent(const QList<Event> &) const = 0;
+
+  /**
+   * Given a list of events, for each component (indexed by its appearance in the
+   * return value of components), gives a list of all events that should be offered
+   * by that component in order that its part in ensuring that any one of the input
+   * events is offered is fulfilled.
+   */
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const = 0;
 
-// Protected methods in PBase can be exposed in the subclasses that require them
-// with the "using" keyword-> A subclass will use at most one of opEvent, opEvents,
-// opEventMap and opAlphabets, and at most one of opProcess, opProcess2, opProcesses
-// and opProcCall->
+  /**
+   * Returns the processes which are components of this process. This standardises
+   * the outputs of opProcess, opProcess2, opProcesses and opProcCall in PUnary,
+   * PBinary, PNary and PProcCall respectively.
+   */
+  virtual QList<Process> components() const = 0;
+
 protected:
+  // Required for compilation. This constructor should never be invoked: virtual
+  // inheritance should prevent it.
+  PBase() : type(Invalid) {}
+  // This constructor should be invoked explicitly by concrete classes. We don't let
+  // intermediate types like PUnary call this constructor because virtual inheritance
+  // will ignore the call, possibly causing hard to debug errors.
   PBase(void *, const CSPMSession *, PType);
 
-  Event opEvent() const;
-  QList<Event> opEvents() const;
-  QList<QPair<Event, Event> > opEventMap() const;
-  QList<QList<Event> > opAlphabets() const;
-
-  Process opProcess() const;
-  QPair<Process, Process> opProcess2() const;
-  QList<Process> opProcesses() const;
-  QPair<Process, QString> opProcCall() const;
-
-  QString displayEventList(QList<Event>) const;
-
-  mutable QString _text;
   const CSPMSession * _session;
+  void * _hsPtr;
+};
+
+/*
+Process types: Unary, Binary or Nary. The appropriate class is inherited by each
+concrete class representing a process of that type.
+*/
+
+class PUnary : public virtual PBase
+{
+public:
+  Process opProcess() const;
+  virtual QList<Process> components() const
+  {
+    QList<Process> r;
+    r.append(opProcess());
+    return r;
+  }
+
+protected:
+  PUnary() : _loadedProcess(false) {}
 
 private:
-  void * _hsPtr;
-  mutable bool _loadedEvent;
   mutable bool _loadedProcess;
-  mutable QList<QPair<Event, Event> > _eventMap;
-  mutable QList<QList<Event> > _alphabets;
+  mutable Process _process;
+};
+
+class PBinary : public virtual PBase
+{
+public:
+  QPair<Process, Process> opProcess2() const;
+  virtual QList<Process> components() const
+  {
+    QList<Process> r;
+    r << opProcess2().first;
+    r << opProcess2().second;
+    return r;
+  }
+
+protected:
+  PBinary() : _loadedProcess(false) {}
+
+private:
+  mutable bool _loadedProcess;
+  mutable QPair<Process, Process> _processes;
+};
+
+class PNary : public virtual PBase
+{
+public:
+  QList<Process> opProcesses() const;
+  virtual QList<Process> components() const
+  {
+    return opProcesses();
+  }
+
+protected:
+  PNary() : _loadedProcess(false) {}
+
+private:
+  mutable bool _loadedProcess;
   mutable QList<Process> _processes;
 };
 
-class PUnary : public PBase
+/*
+Parameter types: some process types take events as parameters. Currently the only
+forms shared by more than one concrete type are event lists and event maps.
+Alphabets (list of lists of events) and single events are held only by Prefix and
+Alphabetised Parallel respectively, so are defined in the concrete class. Refactor
+later if necessary.
+*/
+
+class PWithEventList : public virtual PBase
 {
 public:
-  using PBase::opProcess;
+  QList<Event> opEvents() const;
 protected:
-  PUnary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
+  PWithEventList() : _loadedEvent(false) {}
+private:
+  mutable bool _loadedEvent;
+  mutable QList<Event> _events;
 };
 
-class PBinary : public PBase
+class PWithEventMap : public virtual PBase
 {
 public:
-  using PBase::opProcess2;
+  QList<QPair<Event, Event> > opEventMap() const;
 protected:
-  PBinary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
-};
-
-class PNary : public PBase
-{
-public:
-  using PBase::opProcesses;
-protected:
-  PNary(void * p, const CSPMSession * s, PType t) : PBase(p, s, t) {}
+  PWithEventMap() : _loadedEvent(false) {}
+private:
+  mutable bool _loadedEvent;
+  mutable QList<QPair<Event, Event> > _eventMap;
 };
 
 class PAlphaParallel : public PNary
@@ -127,45 +176,26 @@ class PAlphaParallel : public PNary
   Q_DECLARE_TR_FUNCTIONS(PAlphaParallel)
 
 public:
-  using PBase::opAlphabets;
-  PAlphaParallel(void * p, const CSPMSession * s) : PNary(p, s, AlphaParallel) {}
+  QList<QList<Event> > opAlphabets() const;
+  PAlphaParallel(void * p, const CSPMSession * s) : PBase(p, s, AlphaParallel) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PAlphaParallel * other) const
-  {
-    return opProcesses() == other->opProcesses() &&
-      opAlphabets() == other->opAlphabets();
-  }
+private:
+  mutable bool _loadedEvent;
+  mutable QList<QList<Event> > _alphabets;
 };
 
-class PException : public PBinary
+class PException : public PBinary, public PWithEventList
 {
   Q_DECLARE_TR_FUNCTIONS(PException)
 
 public:
-  using PBase::opEvents;
-  PException(void * p, const CSPMSession * s) : PBinary(p, s, Exception) {}
+  PException(void * p, const CSPMSession * s) : PBase(p, s, Exception) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PException * other) const
-  {
-    return opProcess2() == other->opProcess2() &&
-      opEvents() == other->opEvents();
-  }
 };
 
 class PExternalChoice : public PNary
@@ -173,66 +203,32 @@ class PExternalChoice : public PNary
   Q_DECLARE_TR_FUNCTIONS(PExternalChoice)
 
 public:
-  PExternalChoice(void * p, const CSPMSession * s) : PNary(p, s, ExternalChoice) {}
+  PExternalChoice(void * p, const CSPMSession * s) : PBase(p, s, ExternalChoice) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PExternalChoice * other) const
-  {
-    return opProcesses() == other->opProcesses();
-  }
 };
 
-class PGenParallel : public PNary
+class PGenParallel : public PNary, public PWithEventList
 {
   Q_DECLARE_TR_FUNCTIONS(PGenParallel)
 
 public:
-  using PBase::opEvents;
-  PGenParallel(void * p, const CSPMSession * s) : PNary(p, s, GenParallel) {}
+  PGenParallel(void * p, const CSPMSession * s) : PBase(p, s, GenParallel) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PGenParallel * other) const
-  {
-    return opProcesses() == other->opProcesses() &&
-      opEvents() == other->opEvents();
-  }
 };
 
-class PHide : public PUnary
+class PHide : public PUnary, public PWithEventList
 {
   Q_DECLARE_TR_FUNCTIONS(PHide)
 
 public:
-  using PBase::opEvents;
-  PHide(void * p, const CSPMSession * s) : PUnary(p, s, Hide) {}
+  PHide(void * p, const CSPMSession * s) : PBase(p, s, Hide) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PHide * other) const
-  {
-    return opProcesses() == other->opProcesses() &&
-      opEvents() == other->opEvents();
-  }
 };
 
 class PInternalChoice : public PNary
@@ -240,20 +236,10 @@ class PInternalChoice : public PNary
   Q_DECLARE_TR_FUNCTIONS(PInternalChoice)
 
 public:
-  PInternalChoice(void * p, const CSPMSession * s) : PNary(p, s, InternalChoice) {}
+  PInternalChoice(void * p, const CSPMSession * s) : PBase(p, s, InternalChoice) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PInternalChoice * other) const
-  {
-    return opProcesses() == other->opProcesses();
-  }
 };
 
 class PInterleave : public PNary
@@ -261,20 +247,10 @@ class PInterleave : public PNary
   Q_DECLARE_TR_FUNCTIONS(PInterleave)
 
 public:
-  PInterleave(void * p, const CSPMSession * s) : PNary(p, s, Interleave) {}
+  PInterleave(void * p, const CSPMSession * s) : PBase(p, s, Interleave) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PInterleave * other) const
-  {
-    return opProcesses() == other->opProcesses();
-  }
 };
 
 class PInterrupt : public PBinary
@@ -282,43 +258,21 @@ class PInterrupt : public PBinary
   Q_DECLARE_TR_FUNCTIONS(PInterrupt)
 
 public:
-  PInterrupt(void * p, const CSPMSession * s) : PBinary(p, s, Interrupt) {}
+  PInterrupt(void * p, const CSPMSession * s) : PBase(p, s, Interrupt) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PInterrupt * other) const
-  {
-    return opProcess2() == other->opProcess2();
-  }
 };
 
-class PLinkParallel : public PBinary
+class PLinkParallel : public PBinary, public PWithEventMap
 {
   Q_DECLARE_TR_FUNCTIONS(PLinkParallel)
 
 public:
-  using PBase::opEventMap;
-  PLinkParallel(void * p, const CSPMSession * s) : PBinary(p, s, LinkParallel) {}
+  PLinkParallel(void * p, const CSPMSession * s) : PBase(p, s, LinkParallel) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PLinkParallel * other) const
-  {
-    return opProcess2() == other->opProcess2() &&
-      opEventMap() == other->opEventMap();
-  }
 };
 
 class POperator : public PUnary
@@ -326,19 +280,9 @@ class POperator : public PUnary
   Q_DECLARE_TR_FUNCTIONS(POperator)
 
 public:
-  POperator(void * p, const CSPMSession * s) : PUnary(p, s, Operator) {}
+  POperator(void * p, const CSPMSession * s) : PBase(p, s, Operator) {}
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const POperator * other) const
-  {
-    return opProcess() == other->opProcess();
-  }
 };
 
 class PPrefix : public PUnary
@@ -346,44 +290,25 @@ class PPrefix : public PUnary
   Q_DECLARE_TR_FUNCTIONS(PPrefix)
 
 public:
-  using PBase::opEvent;
-  PPrefix(void * p, const CSPMSession * s) : PUnary(p, s, Prefix) {}
+  Event opEvent() const;
+  PPrefix(void * p, const CSPMSession * s) : PBase(p, s, Prefix) {}
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
 
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PPrefix * other) const
-  {
-    return opProcess() == other->opProcess() &&
-      opEvent() == other->opEvent();
-  }
+private:
+  mutable bool _loadedEvent;
+  mutable Event _event;
 };
 
-class PRename : public PUnary
+class PRename : public PUnary, public PWithEventMap
 {
   Q_DECLARE_TR_FUNCTIONS(PRename)
 
 public:
-  using PBase::opEventMap;
-  PRename(void * p, const CSPMSession * s) : PUnary(p, s, Rename) {}
+  PRename(void * p, const CSPMSession * s) : PBase(p, s, Rename) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PRename * other) const
-  {
-    return opProcess() == other->opProcess() &&
-      opEventMap() == other->opEventMap();
-  }
 };
 
 class PSequentialComp : public PBinary
@@ -391,20 +316,10 @@ class PSequentialComp : public PBinary
   Q_DECLARE_TR_FUNCTIONS(PSequentialComp)
 
 public:
-  PSequentialComp(void * p, const CSPMSession * s) : PBinary(p, s, SequentialComp) {}
+  PSequentialComp(void * p, const CSPMSession * s) : PBase(p, s, SequentialComp) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PSequentialComp * other) const
-  {
-    return opProcess2() == other->opProcess2();
-  }
 };
 
 class PSlidingChoice : public PBinary
@@ -412,66 +327,34 @@ class PSlidingChoice : public PBinary
   Q_DECLARE_TR_FUNCTIONS(PSlidingChoice)
 
 public:
-  PSlidingChoice(void * p, const CSPMSession * s) : PBinary(p, s, SlidingChoice) {}
+  PSlidingChoice(void * p, const CSPMSession * s) : PBase(p, s, SlidingChoice) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PSlidingChoice * other) const
-  {
-    return opProcess2() == other->opProcess2();
-  }
 };
 
-class PSynchronisingExternalChoice : public PNary
+class PSynchronisingExternalChoice : public PNary, public PWithEventList
 {
   Q_DECLARE_TR_FUNCTIONS(PSynchronisingExternalChoice)
 
 public:
-  using PBase::opEvents;
   PSynchronisingExternalChoice(void * p, const CSPMSession * s) :
-    PNary(p, s, SynchronisingExternalChoice) {}
+    PBase(p, s, SynchronisingExternalChoice) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PSynchronisingExternalChoice * other) const
-  {
-    return opProcesses() == other->opProcesses();
-  }
 };
 
-class PSynchronisingInterrupt : public PBinary
+class PSynchronisingInterrupt : public PBinary, public PWithEventList
 {
   Q_DECLARE_TR_FUNCTIONS(PSynchronisingInterrupt)
 
 public:
-  using PBase::opEvents;
   PSynchronisingInterrupt(void * p, const CSPMSession * s) :
-    PBinary(p, s, SynchronisingInterrupt) {}
+    PBase(p, s, SynchronisingInterrupt) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
-  {
-    return other.isEqual(this);
-  }
-
-  virtual bool isEqual(const PSynchronisingInterrupt * other) const
-  {
-    return opProcess2() == other->opProcess2();
-  }
 };
 
 class PProcCall : public PBase
@@ -479,20 +362,20 @@ class PProcCall : public PBase
   Q_DECLARE_TR_FUNCTIONS(PProcCall)
 
 public:
-  using PBase::opProcCall;
+  QPair<Process, QString> opProcCall() const;
   PProcCall(void * p, const CSPMSession * s) : PBase(p, s, ProcCall) {}
   virtual QString whyEvent(const QList<Event> &) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
-
-  virtual bool operator ==(const PBase & other) const
+  virtual QList<Process> components() const
   {
-    return other.isEqual(this);
+    QList<Process> r;
+    r.append(opProcCall().first);
+    return r;
   }
 
-  virtual bool isEqual(const PProcCall * other) const
-  {
-    return opProcCall().second == other->opProcCall().second;
-  }
+private:
+  mutable bool _loadedProcess;
+  mutable QPair<Process, QString> _proccall;
 };
 
 #endif // PBASE_H

@@ -8,11 +8,11 @@
 class TransitionItem : public ProcessItem
 {
 public:
-  TransitionItem(const Process &, const TransitionItem *, const Event &, int);
+  TransitionItem(const Process &, const TransitionItem *, const Event &, int, bool);
   // Overloaded constructor - intended for use only by the root, this constructs
   // two TransitionItems, one the parent of the next, so that the root may be
   // visible.
-  TransitionItem(const Process &);
+  TransitionItem(const Process &, bool);
   Event cause() const;
   const TransitionItem * parent() const;
 
@@ -20,13 +20,13 @@ protected:
   virtual void _load() const;
 
 private:
-  const Event _cause;
+  Event _cause;
 };
 
 class TransitionModel : public QAbstractItemModel
 {
 public:
-  TransitionModel(const Process &, QObject * parent = 0);
+  TransitionModel(const Process &, bool, QObject * parent = 0);
   ~TransitionModel();
   QModelIndex index(int, int, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex &) const;
@@ -37,6 +37,7 @@ public:
 
 private:
   TransitionItem * _rootProcess;
+  bool _asyncSemantics;
 };
 
 #endif // TRANSITIONMODEL_H

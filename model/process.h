@@ -19,15 +19,16 @@ public:
   Process();
   Process(const Process & other);
   ~Process();
-  QList<QPair<Event, Process> > transitions() const;
+  QList<QPair<Event, Process> > transitions(bool) const;
   QList<Process> components(bool expandCall = false) const;
-  bool offersEvent(Event) const;
-  QList<Event> offeredEvents(const QList<Event> & = QList<Event>()) const;
+  bool offersEvent(bool, Event) const;
+  QList<Event> offeredEvents(bool, const QList<Event> & = QList<Event>()) const;
   DisplayString displayText() const;
   QString fullText() const;
   QString toolTip() const;
-  QString whyEvent(const QList<Event> &, bool) const;
-  QHash<int, QList<Event> > eventsRequiredBySuccessors(const QList<Event> &) const;
+  QString whyEvent(const QList<Event> &, bool, bool) const;
+  QHash<int, QList<Event> > eventsRequiredBySuccessors(const QList<Event> &, bool)
+    const;
   bool isValid() const;
   const CSPMSession * session() const;
   bool operator ==(const Process & other) const;

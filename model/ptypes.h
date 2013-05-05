@@ -48,9 +48,10 @@ public:
   /**
    * Explains why, given a list of events, no event in the list is offered. This
    * method is assumed only to be called when it is in fact true that no event in
-   * the list is offered.
+   * the list is offered. The boolean parameter is true if asynchronous termination
+   * semantics should be used, or false if not.
    */
-  virtual QString whyEvent(const QList<Event> &) const = 0;
+  virtual QString whyEvent(const QList<Event> &, bool) const = 0;
 
   /**
    * Given a list of events, for each component (indexed by its appearance in the
@@ -58,7 +59,8 @@ public:
    * by that component in order that its part in ensuring that any one of the input
    * events is offered is fulfilled.
    */
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const = 0;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const = 0;
 
   /**
    * Returns the processes which are components of this process. This standardises
@@ -179,8 +181,9 @@ public:
   QList<QList<Event> > opAlphabets() const;
   PAlphaParallel(void * p, const CSPMSession * s) : PBase(p, s, AlphaParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 
 private:
   mutable bool _loadedEvent;
@@ -194,8 +197,10 @@ class PException : public PBinary, public PWithEventList
 public:
   PException(void * p, const CSPMSession * s) : PBase(p, s, Exception) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool)
+   const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PExternalChoice : public PNary
@@ -205,8 +210,9 @@ class PExternalChoice : public PNary
 public:
   PExternalChoice(void * p, const CSPMSession * s) : PBase(p, s, ExternalChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PGenParallel : public PNary, public PWithEventList
@@ -216,8 +222,9 @@ class PGenParallel : public PNary, public PWithEventList
 public:
   PGenParallel(void * p, const CSPMSession * s) : PBase(p, s, GenParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PHide : public PUnary, public PWithEventList
@@ -227,8 +234,9 @@ class PHide : public PUnary, public PWithEventList
 public:
   PHide(void * p, const CSPMSession * s) : PBase(p, s, Hide) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PInternalChoice : public PNary
@@ -238,8 +246,9 @@ class PInternalChoice : public PNary
 public:
   PInternalChoice(void * p, const CSPMSession * s) : PBase(p, s, InternalChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PInterleave : public PNary
@@ -249,8 +258,9 @@ class PInterleave : public PNary
 public:
   PInterleave(void * p, const CSPMSession * s) : PBase(p, s, Interleave) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PInterrupt : public PBinary
@@ -260,8 +270,9 @@ class PInterrupt : public PBinary
 public:
   PInterrupt(void * p, const CSPMSession * s) : PBase(p, s, Interrupt) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PLinkParallel : public PBinary, public PWithEventMap
@@ -271,8 +282,9 @@ class PLinkParallel : public PBinary, public PWithEventMap
 public:
   PLinkParallel(void * p, const CSPMSession * s) : PBase(p, s, LinkParallel) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class POperator : public PUnary
@@ -281,8 +293,9 @@ class POperator : public PUnary
 
 public:
   POperator(void * p, const CSPMSession * s) : PBase(p, s, Operator) {}
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PPrefix : public PUnary
@@ -292,8 +305,9 @@ class PPrefix : public PUnary
 public:
   Event opEvent() const;
   PPrefix(void * p, const CSPMSession * s) : PBase(p, s, Prefix) {}
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 
 private:
   mutable bool _loadedEvent;
@@ -307,8 +321,9 @@ class PRename : public PUnary, public PWithEventMap
 public:
   PRename(void * p, const CSPMSession * s) : PBase(p, s, Rename) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PSequentialComp : public PBinary
@@ -318,8 +333,9 @@ class PSequentialComp : public PBinary
 public:
   PSequentialComp(void * p, const CSPMSession * s) : PBase(p, s, SequentialComp) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PSlidingChoice : public PBinary
@@ -329,8 +345,9 @@ class PSlidingChoice : public PBinary
 public:
   PSlidingChoice(void * p, const CSPMSession * s) : PBase(p, s, SlidingChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PSynchronisingExternalChoice : public PNary, public PWithEventList
@@ -341,8 +358,9 @@ public:
   PSynchronisingExternalChoice(void * p, const CSPMSession * s) :
     PBase(p, s, SynchronisingExternalChoice) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PSynchronisingInterrupt : public PBinary, public PWithEventList
@@ -353,8 +371,9 @@ public:
   PSynchronisingInterrupt(void * p, const CSPMSession * s) :
     PBase(p, s, SynchronisingInterrupt) {}
   virtual QString toolTip() const;
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
 };
 
 class PProcCall : public PBase
@@ -364,8 +383,9 @@ class PProcCall : public PBase
 public:
   QPair<Process, QString> opProcCall() const;
   PProcCall(void * p, const CSPMSession * s) : PBase(p, s, ProcCall) {}
-  virtual QString whyEvent(const QList<Event> &) const;
-  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &) const;
+  virtual QString whyEvent(const QList<Event> &, bool) const;
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const;
   virtual QList<Process> components() const
   {
     QList<Process> r;

@@ -63,7 +63,6 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiTabs = new TabWidget(uiSplitter);
   uiTabs->setDocumentMode(true);
   uiTabs->setElideMode(Qt::ElideRight);
-  newBlankTab();
   uiNewTabButton = new QToolButton(uiTabs);
   uiNewTabButton->setAutoRaise(true);
   uiNewTabButton->setIcon(QIcon(":/images/new-tab.png"));
@@ -103,6 +102,21 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiMenuSessionExit = new QAction(uiMenuSession);
   uiMenuSessionExit->setText(tr("E&xit"));
   uiMenuSessionExit->setStatusTip(tr("Close the program."));
+  uiMenuBehaviour = new QMenu(uiMenu);
+  uiMenuBehaviour->setTitle(tr("&Behaviour"));
+  QActionGroup * g = new QActionGroup(uiMenuBehaviour);
+  uiMenuBehaviourSync = new QAction(g);
+  uiMenuBehaviourSync->setText(tr("Synchronous Termination Semantics"));
+  uiMenuBehaviourSync->setStatusTip(tr(
+    "Use the FDR 2 style behaviour for termination of processes in parallel."));
+  uiMenuBehaviourSync->setCheckable(true);
+  uiMenuBehaviourSync->setChecked(true);
+  uiMenuBehaviourAsync = new QAction(g);
+  uiMenuBehaviourAsync->setCheckable(true);
+  uiMenuBehaviourAsync->setText(tr("Asynchronous Termination Semantics"));
+  uiMenuBehaviourAsync->setStatusTip(tr(
+    "Use the Omega style behaviour for termination of processes in parallel."));
+
   // Menu bar actions.
   uiMenu->addAction(uiMenuSession->menuAction());
   uiMenuSession->addAction(uiMenuSessionOpen);
@@ -111,6 +125,13 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiMenuSession->addAction(uiMenuSessionClose);
   uiMenuSession->addAction(uiMenuSessionCloseAll);
   uiMenuSession->addAction(uiMenuSessionExit);
+  uiMenu->addAction(uiMenuBehaviour->menuAction());
+  uiMenuBehaviour->addAction(uiMenuBehaviourSync);
+  uiMenuBehaviour->addAction(uiMenuBehaviourAsync);
+
+  // New blank tab. Add this after the menu, since creating a tab requires the
+  // presence of the behaviour menu elements.
+  newBlankTab();
 
   // Status bar
   uiStatus = new QStatusBar(this);
@@ -127,10 +148,15 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   // Signals and slots
   connect(uiMenuSessionOpen, SIGNAL(triggered()), this, SLOT(actionOpen()));
   connect(uiMenuSessionReload, SIGNAL(triggered()), this, SLOT(actionReload()));
-  connect(uiMenuSessionReloadAll, SIGNAL(triggered()), this, SLOT(actionReloadAll()));
+  connect(uiMenuSessionReloadAll, SIGNAL(triggered()),
+    this, SLOT(actionReloadAll()));
   connect(uiMenuSessionClose, SIGNAL(triggered()), this, SLOT(actionClose()));
   connect(uiMenuSessionCloseAll, SIGNAL(triggered()), this, SLOT(actionCloseAll()));
   connect(uiMenuSessionExit, SIGNAL(triggered()), this, SLOT(close()));
+  connect(uiMenuBehaviourSync, SIGNAL(triggered()),
+    this, SLOT(actionSyncSemantics()));
+  connect(uiMenuBehaviourAsync, SIGNAL(triggered()),
+    this, SLOT(actionAsyncSemantics()));
   connect(
     uiSessions, SIGNAL(activated(const QModelIndex &)),
     sessModel, SLOT(itemActivated(const QModelIndex &))
@@ -139,6 +165,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     uiTabs, SIGNAL(tabCloseRequested(int)),
     this, SLOT(closeTab(int))
   );
+  connect(uiTabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(uiNewTabButton, SIGNAL(clicked()), this, SLOT(newBlankTab()));
 
   // A file may be passed as an argument to load on launch.
@@ -157,6 +184,7 @@ Tab * MainWindow::createTab()
 {
   uiTabs->setTabsClosable(uiTabs->count() != 0);
   Tab * tab = new Tab(uiTabs);
+  tab->setBehaviour(Tab::AsynchronousTermination, uiMenuBehaviourAsync->isChecked());
   QShortcut * shiftReturn = new QShortcut(QKeySequence("Shift+Return"), tab->exprBox);
   shiftReturn->setContext(Qt::WidgetShortcut);
   connect(tab->exprBox, SIGNAL(returnPressed()), this, SLOT(setTabFromExpression()));
@@ -259,6 +287,16 @@ void MainWindow::actionCloseAll()
   setCurrentSession(NULL);
 }
 
+void MainWindow::actionSyncSemantics()
+{
+  currentTab()->setBehaviour(Tab::AsynchronousTermination, false);
+}
+
+void MainWindow::actionAsyncSemantics()
+{
+  currentTab()->setBehaviour(Tab::AsynchronousTermination, true);
+}
+
 void MainWindow::setTabExpression(Tab * tab, const Expression & expr)
 {
   tab->setExpression(expr);
@@ -298,6 +336,19 @@ void MainWindow::closeTab(int index)
     !static_cast<Tab *>(uiTabs->widget(0))->expression().isValid())
   {
     uiTabs->setTabsClosable(false);
+  }
+}
+
+void MainWindow::tabChanged(int index)
+{
+  Tab * tab = static_cast<Tab *>(uiTabs->widget(index));
+  if (tab->behaviour(Tab::AsynchronousTermination))
+  {
+    uiMenuBehaviourAsync->setChecked(true);
+  }
+  else
+  {
+    uiMenuBehaviourSync->setChecked(true);
   }
 }
 

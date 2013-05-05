@@ -14,13 +14,14 @@ public:
   bool isLoaded() const;
 
 protected:
-  ProcessItem(const Process &, const ProcessItem *, int);
+  ProcessItem(const Process &, const ProcessItem *, int, bool);
   const ProcessItem * _parentItem() const;
   virtual void _load() const;
 
   const Process _process;
   const ProcessItem * _parent;
   const int _index;
+  bool _asyncSemantics;
   mutable QList<ProcessItem *> _next;
   mutable bool _loaded;
 };

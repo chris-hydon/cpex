@@ -8,10 +8,10 @@
 class InspectItem : public ProcessItem
 {
 public:
-  InspectItem(const Process &, const InspectItem *, int);
+  InspectItem(const Process &, const InspectItem *, int, bool);
   // Overloaded constructor - intended for use only by the root, this constructs
   // two InspectItems, one the parent of the next, so that the root may be visible.
-  InspectItem(const Process &);
+  InspectItem(const Process &, bool);
   const InspectItem * parent() const;
   QList<Event> events() const;
   void setEvents(QList<Event> events);
@@ -35,7 +35,7 @@ class InspectModel : public QAbstractItemModel
   Q_OBJECT
 
 public:
-  InspectModel(const Process &, QObject * parent = 0);
+  InspectModel(const Process &, bool, QObject * parent = 0);
   ~InspectModel();
   QModelIndex index(int, int, const QModelIndex & parent = QModelIndex()) const;
   QModelIndex parent(const QModelIndex &) const;
@@ -55,6 +55,7 @@ private:
   void _dataChanged(const QModelIndex &, QList<Event>);
 
   InspectItem * _rootProcess;
+  bool _asyncSemantics;
 };
 
 #endif // INSPECTMODEL_H

@@ -3,15 +3,16 @@
 #include "cspmsession.h"
 #include "programstate.h"
 
-TransitionItem::TransitionItem(const Process & process, const TransitionItem * parent,
-  const Event & cause, int index) : ProcessItem(process, parent, index), _cause(cause)
+TransitionItem::TransitionItem(const Process & process,
+  const TransitionItem * parent, const Event & cause, int index, bool asyncSemantics)
+  : ProcessItem(process, parent, index, asyncSemantics), _cause(cause)
 {
 }
 
-TransitionItem::TransitionItem(const Process & process) :
-  ProcessItem(Process(), NULL, 0)
+TransitionItem::TransitionItem(const Process & process, bool asyncSemantics) :
+  ProcessItem(Process(), NULL, 0, asyncSemantics)
 {
-  _next.append(new TransitionItem(process, this, Event(), 0));
+  _next.append(new TransitionItem(process, this, Event(), 0, asyncSemantics));
   _loaded = true;
 }
 
@@ -27,18 +28,21 @@ const TransitionItem * TransitionItem::parent() const
 
 void TransitionItem::_load() const
 {
-  QList<QPair<Event, Process> > transitions = process().transitions();
+  QList<QPair<Event, Process> > transitions = process().transitions(_asyncSemantics);
   QPair<Event, Process> pair;
   for (int i = 0; i < transitions.count(); i++)
   {
     pair = transitions.at(i);
-    _next.append(new TransitionItem(pair.second, this, pair.first, i));
+    _next.append(new TransitionItem(pair.second, this, pair.first, i,
+      _asyncSemantics));
   }
   _loaded = true;
 }
 
-TransitionModel::TransitionModel(const Process & rootProcess, QObject * parent) :
-  QAbstractItemModel(parent), _rootProcess(new TransitionItem(rootProcess))
+TransitionModel::TransitionModel(const Process & rootProcess, bool asyncSemantics,
+  QObject * parent) : QAbstractItemModel(parent),
+  _rootProcess(new TransitionItem(rootProcess, asyncSemantics)),
+  _asyncSemantics(asyncSemantics)
 {
 }
 
@@ -135,6 +139,6 @@ bool TransitionModel::hasChildren(const QModelIndex & parent) const
   else
   {
     return static_cast<TransitionItem *>(parent.internalPointer())
-      ->process().transitions().count();
+      ->process().transitions(_asyncSemantics).count();
   }
 }

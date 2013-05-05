@@ -4,13 +4,15 @@
 #include "cspmsession.h"
 
 InspectItem::InspectItem(const Process & process, const InspectItem * parent,
-  int index) : ProcessItem(process, parent, index)
+  int index, bool asyncSemantics) :
+  ProcessItem(process, parent, index, asyncSemantics)
 {
 }
 
-InspectItem::InspectItem(const Process & process) : ProcessItem(Process(), NULL, 0)
+InspectItem::InspectItem(const Process & process, bool asyncSemantics) :
+  ProcessItem(Process(), NULL, 0, asyncSemantics)
 {
-  _next.append(new InspectItem(process, this, 0));
+  _next.append(new InspectItem(process, this, 0, asyncSemantics));
   _loaded = true;
 }
 
@@ -36,7 +38,8 @@ void InspectItem::setEvents(QList<Event> events)
   }
   else
   {
-    _deco = process().offeredEvents(events).isEmpty() ? cross : tick;
+    _deco = process().offeredEvents(_asyncSemantics, events).isEmpty() ? cross :
+      tick;
   }
 }
 
@@ -50,13 +53,14 @@ void InspectItem::_load() const
   QList<Process> components = process().components(true);
   for (int i = 0; i < components.count(); i++)
   {
-    _next.append(new InspectItem(components.at(i), this, i));
+    _next.append(new InspectItem(components.at(i), this, i, _asyncSemantics));
   }
   _loaded = true;
 }
 
-InspectModel::InspectModel(const Process & rootProcess, QObject * parent) :
-  QAbstractItemModel(parent), _rootProcess(new InspectItem(rootProcess))
+InspectModel::InspectModel(const Process & rootProcess, bool asyncSemantics,
+  QObject * parent) : QAbstractItemModel(parent),
+  _rootProcess(new InspectItem(rootProcess, asyncSemantics)), _asyncSemantics(asyncSemantics)
 {
 }
 
@@ -192,7 +196,7 @@ void InspectModel::refreshData(const QModelIndex & idx)
     // here will also result in an empty list when value() is called below, so the
     // behaviour is sensible.
     QHash<int, QList<Event> > next =
-      item->process().eventsRequiredBySuccessors(events);
+      item->process().eventsRequiredBySuccessors(events, _asyncSemantics);
     emit dataChanged(index(0, 0, idx), index(item->count() - 1, 0, idx));
     for (int i = 0; i < item->count(); i++)
     {

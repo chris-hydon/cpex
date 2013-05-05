@@ -12,10 +12,20 @@
 class Tab : public QWidget
 {
   Q_OBJECT
+
 public:
+  enum Behaviour
+  {
+    DefaultBehaviour = 0,
+    AsynchronousTermination = 1
+  };
+
   explicit Tab(QWidget * parent = 0);
   Expression expression() const;
   void setExpression(const Expression &);
+  void resetDisplay();
+  bool behaviour(Behaviour) const;
+  void setBehaviour(Behaviour, bool);
   void updateExprBox();
   QLineEdit * exprBox;
 
@@ -33,6 +43,7 @@ private:
   ProcessTree * _tree;
   QLabel * _inspectorWhyDetails;
   QLineEdit * _inspectorWhy;
+  int _behaviours;
 };
 
 #endif // TAB_H

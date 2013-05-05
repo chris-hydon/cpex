@@ -13,7 +13,7 @@
 #include "widget/tracelistwidget.h"
 #include "programstate.h"
 
-Tab::Tab(QWidget * parent) : QWidget(parent)
+Tab::Tab(QWidget * parent) : QWidget(parent), _behaviours(DefaultBehaviour)
 {
   QLayout * grid = new QGridLayout(this);
   exprBox = new QLineEdit(this);
@@ -33,7 +33,11 @@ void Tab::setExpression(const Expression & expr)
   }
   _expression = expr;
   updateExprBox();
+  resetDisplay();
+}
 
+void Tab::resetDisplay()
+{
   // Index 0 will be the expression box. Remove everything else.
   QLayoutItem * oldContents;
   while ((oldContents = layout()->takeAt(1)) != 0)
@@ -42,15 +46,30 @@ void Tab::setExpression(const Expression & expr)
     delete oldContents;
   }
 
-  switch (expr.mode())
+  if (_expression.isValid())
   {
-    case Expression::Probe:
-      setupProbe(expr);
-      break;
-    case Expression::Inspect:
-      setupInspector(expr);
-      break;
+    switch (_expression.mode())
+    {
+      case Expression::Probe:
+        setupProbe(_expression);
+        break;
+      case Expression::Inspect:
+        setupInspector(_expression);
+        break;
+    }
   }
+}
+
+bool Tab::behaviour(Behaviour b) const
+{
+  return _behaviours & b;
+}
+
+void Tab::setBehaviour(Behaviour b, bool state)
+{
+  // Turns b on if state is true, else turns b off.
+  _behaviours = (_behaviours & ~b) | (b * state);
+  resetDisplay();
 }
 
 void Tab::setupProbe(const Expression & expr)
@@ -61,7 +80,8 @@ void Tab::setupProbe(const Expression & expr)
 
   _tree = new ProcessTree(expr.process().session(), splitter);
   _tree->setHeaderHidden(true);
-  TransitionModel * m = new TransitionModel(expr.process(), _tree);
+  TransitionModel * m = new TransitionModel(expr.process(),
+    behaviour(AsynchronousTermination), _tree);
   _tree->setModel(m);
 
   TraceListWidget * trace = new TraceListWidget(splitter);
@@ -204,7 +224,8 @@ void Tab::displayEventDetails(const QModelIndex & idx)
     InspectItem * idx = static_cast<InspectItem *>(index.internalPointer());
     Process process = idx->process();
     QList<Event> events = idx->events();
-    _inspectorWhyDetails->setText(process.whyEvent(events, !index.parent().isValid()));
+    _inspectorWhyDetails->setText(process.whyEvent(events, !index.parent().isValid(),
+      behaviour(AsynchronousTermination)));
   }
 
   _inspectorWhyDetails->setVisible(true);

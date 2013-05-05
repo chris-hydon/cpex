@@ -42,8 +42,11 @@ public slots:
   void actionReloadAll();
   void actionClose();
   void actionCloseAll();
+  void actionSyncSemantics();
+  void actionAsyncSemantics();
   void newBlankTab();
   void closeTab(int index = -1);
+  void tabChanged(int);
   void newTabFromExpression(const Expression & = Expression());
   void setTabFromExpression(const Expression & = Expression());
 
@@ -61,6 +64,9 @@ private:
   QAction * uiMenuSessionReload;
   QAction * uiMenuSessionCloseAll;
   QAction * uiMenuSessionReloadAll;
+  QMenu * uiMenuBehaviour;
+  QAction * uiMenuBehaviourSync;
+  QAction * uiMenuBehaviourAsync;
   QStatusBar * uiStatus;
   QWidget * uiCentral;
   QSplitter * uiSplitter;

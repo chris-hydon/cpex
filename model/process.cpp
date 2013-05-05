@@ -14,13 +14,15 @@ class ProcessData : public QSharedData
 {
 public:
   ProcessData(void * hsPtr, const CSPMSession * session) : session(session),
-    hsPtr(hsPtr), loaded(false)
+    hsPtr(hsPtr), loadedSync(false), loadedAsync(false)
   {
   }
 
   ProcessData(const ProcessData & other) : QSharedData(other),
     session(other.session), hsPtr(other.hsPtr), backend(other.backend),
-    loaded(true), next(other.next), displayText(other.displayText)
+    loadedSync(other.loadedSync), loadedAsync(other.loadedAsync),
+    nextSync(other.nextSync), nextAsync(other.nextAsync),
+    displayText(other.displayText)
   {
   }
 
@@ -33,8 +35,10 @@ public:
   const CSPMSession * session;
   void * hsPtr;
   PBase * backend;
-  mutable bool loaded;
-  mutable QList<QPair<Event, Process> > next;
+  mutable bool loadedSync;
+  mutable bool loadedAsync;
+  mutable QList<QPair<Event, Process> > nextSync;
+  mutable QList<QPair<Event, Process> > nextAsync;
   mutable DisplayString displayText;
   mutable QString fullText;
 };
@@ -135,29 +139,44 @@ Process::~Process()
 {
 }
 
-QList<QPair<Event, Process> > Process::transitions() const
+QList<QPair<Event, Process> > Process::transitions(bool asyncSemantics) const
 {
-  if (!_d->loaded)
+  if ((asyncSemantics && !_d->loadedAsync) || (!asyncSemantics && !_d->loadedSync))
   {
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, true, &hsEvents, &hsProcs,
-      &transitionCount);
+    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, asyncSemantics, &hsEvents,
+      &hsProcs, &transitionCount);
 
     for (quint32 i = 0; i < transitionCount; i++)
     {
       Process p = Process::create(hsProcs[i], _d->session);
-      _d->next.append(QPair<Event, Process>(Event::create(
-        _d->session, hsEvents[i]), p));
+      if (asyncSemantics)
+      {
+        _d->nextAsync.append(QPair<Event, Process>(Event::create(
+          _d->session, hsEvents[i]), p));
+      }
+      else
+      {
+        _d->nextSync.append(QPair<Event, Process>(Event::create(
+          _d->session, hsEvents[i]), p));
+      }
     }
 
     free(hsProcs);
     free(hsEvents);
-    _d->loaded = true;
+    if (asyncSemantics)
+    {
+      _d->loadedAsync = true;
+    }
+    else
+    {
+      _d->loadedSync = true;
+    }
   }
 
-  return _d->next;
+  return asyncSemantics ? _d->nextAsync : _d->nextSync;
 }
 
 QList<Process> Process::components(bool expandCall) const
@@ -169,10 +188,10 @@ QList<Process> Process::components(bool expandCall) const
   return QList<Process>();
 }
 
-bool Process::offersEvent(Event event) const
+bool Process::offersEvent(bool asyncSemantics, Event event) const
 {
   QPair<Event, Process> t;
-  foreach (t, transitions())
+  foreach (t, transitions(asyncSemantics))
   {
     if (t.first == event)
     {
@@ -182,11 +201,12 @@ bool Process::offersEvent(Event event) const
   return false;
 }
 
-QList<Event> Process::offeredEvents(const QList<Event> & events) const
+QList<Event> Process::offeredEvents(bool asyncSemantics, const QList<Event> & events)
+  const
 {
   QPair<Event, Process> t;
   QList<Event> offered;
-  foreach (t, transitions())
+  foreach (t, transitions(asyncSemantics))
   {
     if (events.isEmpty() || events.contains(t.first))
     {
@@ -225,30 +245,31 @@ QString Process::toolTip() const
   return _d->backend->toolTip();
 }
 
-QString Process::whyEvent(const QList<Event> & events, bool atRoot) const
+QString Process::whyEvent(const QList<Event> & events, bool atRoot,
+  bool asyncSemantics) const
 {
   if (events.isEmpty())
   {
     return atRoot ? QObject::tr("The event given is not valid.")
       : QObject::tr("This component is not relevant to your query.");
   }
-  QList<Event> passEvents = offeredEvents(events);
+  QList<Event> passEvents = offeredEvents(asyncSemantics, events);
   if (passEvents.isEmpty())
   {
-    return _d->backend->whyEvent(events);
+    return _d->backend->whyEvent(events, asyncSemantics);
   }
   return QObject::tr("This component offers the event(s) %1.", 0, events.count())
     .arg(Event::displayEventList(_d->session, events, Event::SetOrSingle));
 }
 
 QHash<int, QList<Event> > Process::eventsRequiredBySuccessors(
-  const QList<Event> & events) const
+  const QList<Event> & events, bool asyncSemantics) const
 {
   if (events.isEmpty())
   {
     return QHash<int, QList<Event> >();
   }
-  return _d->backend->successorEvents(events);
+  return _d->backend->successorEvents(events, asyncSemantics);
 }
 
 bool Process::isValid() const

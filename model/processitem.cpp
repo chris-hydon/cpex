@@ -1,7 +1,8 @@
 #include "processitem.h"
 
 ProcessItem::ProcessItem(const Process & process, const ProcessItem * parent,
-  int index) : _process(process), _parent(parent), _index(index), _loaded(false)
+  int index, bool asyncSemantics) : _process(process), _parent(parent),
+  _index(index), _asyncSemantics(asyncSemantics), _loaded(false)
 {
 }
 

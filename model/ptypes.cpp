@@ -278,7 +278,8 @@ QHash<int, QList<Event> > _duplicateList(const QList<Event> & events, int count)
   return ret;
 }
 
-QString PAlphaParallel::whyEvent(const QList<Event> & events) const
+QString PAlphaParallel::whyEvent(const QList<Event> & events,
+  bool asyncSemantics) const
 {
   QStringList complaints;
   QList<Process> components = opProcesses();
@@ -288,10 +289,26 @@ QString PAlphaParallel::whyEvent(const QList<Event> & events) const
     switch (event.type())
     {
       case Event::Tau:
-        complaints << tr("None of the components offer %1.").arg(QChar(0x03c4));
+        if (asyncSemantics)
+        {
+          complaints << tr("None of the components offer %1 or %2.")
+            .arg(QChar(0x03c4), QChar(0x2713));
+        }
+        else
+        {
+          complaints << tr("None of the components offer %1.").arg(QChar(0x03c4));
+        }
         break;
       case Event::Tick:
-        complaints << tr("Not all of the components offer %1.").arg(QChar(0x2713));
+        if (asyncSemantics)
+        {
+          complaints << tr("Not all of the components are %1 (already terminated).")
+            .arg(QChar(0x03a9));
+        }
+        else
+        {
+          complaints << tr("Not all of the components offer %1.").arg(QChar(0x2713));
+        }
         break;
       default:
         ;
@@ -320,8 +337,8 @@ QString PAlphaParallel::whyEvent(const QList<Event> & events) const
   return complaints.join("\n");
 }
 
-QHash<int, QList<Event> >
-  PAlphaParallel::successorEvents(const QList<Event> & events) const
+QHash<int, QList<Event> > PAlphaParallel::successorEvents(
+  const QList<Event> & events, bool asyncSemantics) const
 {
   QHash<int, QList<Event> > ret;
   QList<QList<Event> > alphabets = opAlphabets();
@@ -332,7 +349,8 @@ QHash<int, QList<Event> >
     QList<Event> r;
     foreach (Event e, events)
     {
-      if (alphabets[i].contains(e))
+      if (e.type() == Event::Tau || (asyncSemantics && e.type() == Event::Tick) ||
+        alphabets[i].contains(e))
       {
         r.append(e);
       }
@@ -342,40 +360,47 @@ QHash<int, QList<Event> >
   return ret;
 }
 
-QString PException::whyEvent(const QList<Event> & events) const
+QString PException::whyEvent(const QList<Event> & events, bool) const
 {
   return tr("The main process (component 1) does not offer %1.")
     .arg(Event::displayEventList(_session, events, Event::CommaOr));
 }
 
 QHash<int, QList<Event> >
-  PException::successorEvents(const QList<Event> & events) const
+  PException::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 1);
 }
 
-QString PExternalChoice::whyEvent(const QList<Event> & events) const
+QString PExternalChoice::whyEvent(const QList<Event> & events, bool) const
 {
   return tr("None of the components offer %1.", "", events.count())
     .arg(Event::displayEventList(_session, events, Event::CommaOr));
 }
 
 QHash<int, QList<Event> >
-  PExternalChoice::successorEvents(const QList<Event> & events) const
+  PExternalChoice::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, opProcesses().count());
 }
 
-QString PGenParallel::whyEvent(const QList<Event> & events) const
+QString PGenParallel::whyEvent(const QList<Event> & events, bool asyncSemantics)
+  const
 {
   QStringList complaints;
   QList<Event> inInterface;
   QList<Event> notInInterface;
   foreach (Event event, events)
   {
-    if (opEvents().contains(event))
+    if ((!asyncSemantics && event.type() == Event::Tick) ||
+      opEvents().contains(event))
     {
       inInterface << event;
+    }
+    else if (asyncSemantics && event.type() == Event::Tick)
+    {
+      complaints << tr("Not all of the components are %1 (already terminated).")
+        .arg(QChar(0x03a9));
     }
     else
     {
@@ -396,13 +421,36 @@ QString PGenParallel::whyEvent(const QList<Event> & events) const
   return complaints.join("\n");
 }
 
-QHash<int, QList<Event> >
-  PGenParallel::successorEvents(const QList<Event> & events) const
+QHash<int, QList<Event> > PGenParallel::successorEvents(
+  const QList<Event> & events, bool asyncSemantics) const
 {
-  return _duplicateList(events, opProcesses().count());
+  // For the asynchronous case, if we want a tick and can't get one, that can't be
+  // fixed by offering some event. If we want a tau and can't get one, we need either
+  // a tau or a tick.
+  if (asyncSemantics)
+  {
+    QList<Event> ret;
+    foreach (Event e, events)
+    {
+      if (e.type() == Event::Tau)
+      {
+        ret << e;
+        ret << _session->stringToEvent("_tick");
+      }
+      else if (e.type() == Event::User)
+      {
+        ret << e;
+      }
+    }
+    return _duplicateList(ret, opProcesses().count());
+  }
+  else
+  {
+    return _duplicateList(events, opProcesses().count());
+  }
 }
 
-QString PHide::whyEvent(const QList<Event> & events) const
+QString PHide::whyEvent(const QList<Event> & events, bool) const
 {
   QStringList complaints;
   QList<Event> hidden;
@@ -438,7 +486,7 @@ QString PHide::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  PHide::successorEvents(const QList<Event> & events) const
+  PHide::successorEvents(const QList<Event> & events, bool) const
 {
   QList<Event> ret;
   // Want the events for the component to be the input, minus any events hidden,
@@ -461,7 +509,7 @@ QHash<int, QList<Event> >
   return _duplicateList(ret, 1);
 }
 
-QString PInternalChoice::whyEvent(const QList<Event> & events) const
+QString PInternalChoice::whyEvent(const QList<Event> & events, bool) const
 {
   foreach (Event event, events) if (event.type() == Event::Tau)
   {
@@ -471,13 +519,13 @@ QString PInternalChoice::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  PInternalChoice::successorEvents(const QList<Event> &) const
+  PInternalChoice::successorEvents(const QList<Event> &, bool) const
 {
   // Internal Choice only offers tau, no matter what its components may do.
   return QHash<int, QList<Event> >();
 }
 
-QString PInterleave::whyEvent(const QList<Event> & events) const
+QString PInterleave::whyEvent(const QList<Event> & events, bool asyncSemantics) const
 {
   QStringList complaints;
   QList<Event> nonTickEvents;
@@ -485,7 +533,20 @@ QString PInterleave::whyEvent(const QList<Event> & events) const
   {
     if (event.type() == Event::Tick)
     {
-      complaints << tr("Not all components offer a %1.").arg(QChar(0x2713));
+      if (asyncSemantics)
+      {
+        complaints << tr("Not all of the components are %1 (already terminated).")
+          .arg(QChar(0x03a9));
+      }
+      else
+      {
+        complaints << tr("Not all components offer a %1.").arg(QChar(0x2713));
+      }
+    }
+    else if (asyncSemantics && event.type() == Event::Tau)
+    {
+      complaints << tr("None of the components offer %1 or %2.")
+        .arg(QChar(0x03c4), QChar(0x2713));
     }
     else
     {
@@ -500,25 +561,49 @@ QString PInterleave::whyEvent(const QList<Event> & events) const
   return complaints.join("\n");
 }
 
-QHash<int, QList<Event> >
-  PInterleave::successorEvents(const QList<Event> & events) const
+QHash<int, QList<Event> > PInterleave::successorEvents(
+  const QList<Event> & events, bool asyncSemantics) const
 {
-  return _duplicateList(events, opProcesses().count());
+  // For the asynchronous case, if we want a tick and can't get one, that can't be
+  // fixed by offering some event. If we want a tau and can't get one, we need either
+  // a tau or a tick.
+  if (asyncSemantics)
+  {
+    QList<Event> ret;
+    foreach (Event e, events)
+    {
+      if (e.type() == Event::Tau)
+      {
+        ret << e;
+        ret << _session->stringToEvent("_tick");
+      }
+      else if (e.type() == Event::User)
+      {
+        ret << e;
+      }
+    }
+    return _duplicateList(ret, opProcesses().count());
+  }
+  else
+  {
+    return _duplicateList(events, opProcesses().count());
+  }
 }
 
-QString PInterrupt::whyEvent(const QList<Event> & events) const
+QString PInterrupt::whyEvent(const QList<Event> & events, bool) const
 {
   return tr("Neither of the components offer %1.", "", events.count())
     .arg(Event::displayEventList(_session, events, Event::CommaOr));
 }
 
 QHash<int, QList<Event> >
-  PInterrupt::successorEvents(const QList<Event> & events) const
+  PInterrupt::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 2);
 }
 
-QString PLinkParallel::whyEvent(const QList<Event> & events) const
+QString PLinkParallel::whyEvent(const QList<Event> & events, bool asyncSemantics)
+  const
 {
   QStringList complaints;
   QList<Event> hidden;
@@ -527,15 +612,32 @@ QString PLinkParallel::whyEvent(const QList<Event> & events) const
   {
     if (event.type() == Event::Tau)
     {
-      complaints <<  tr("Neither of the components offer a %1, and none of the "
-        "synchronized event pairs are offered.").arg(QChar(0x03c4));
+      if (asyncSemantics)
+      {
+        complaints <<  tr("Neither of the components offer a %1 or a %2, and none "
+          "of the synchronized event pairs are offered.")
+          .arg(QChar(0x03c4), QChar(0x2713));
+      }
+      else
+      {
+        complaints <<  tr("Neither of the components offer a %1, and none of the "
+          "synchronized event pairs are offered.").arg(QChar(0x03c4));
+      }
     }
     else if (event.type() == Event::Tick)
     {
-      complaints << tr("%1 is not offered by both components.").arg(QChar(0x2713));
+      if (asyncSemantics)
+      {
+        complaints << tr("Not all of the components are %1 (already terminated).")
+          .arg(QChar(0x03a9));
+      }
+      else
+      {
+        complaints << tr("%1 is not offered by both components.").arg(QChar(0x2713));
+      }
     }
-    else if (opProcess2().first.offersEvent(event) ||
-      opProcess2().second.offersEvent(event))
+    else if (opProcess2().first.offersEvent(asyncSemantics, event) ||
+      opProcess2().second.offersEvent(asyncSemantics, event))
     {
       hidden.append(event);
     }
@@ -558,8 +660,8 @@ QString PLinkParallel::whyEvent(const QList<Event> & events) const
   return complaints.join("\n");
 }
 
-QHash<int, QList<Event> >
-  PLinkParallel::successorEvents(const QList<Event> & events) const
+QHash<int, QList<Event> > PLinkParallel::successorEvents(
+  const QList<Event> & events, bool asyncSemantics) const
 {
   QHash<int, QList<Event> > ret;
   QList<Event> left, right;
@@ -580,10 +682,18 @@ QHash<int, QList<Event> >
     {
       left.append(event);
       right.append(event);
+      if (asyncSemantics)
+      {
+        Event tick = _session->stringToEvent("_tick");
+        left.append(tick);
+        right.append(tick);
+      }
       left.append(leftHides.toList());
       right.append(rightHides.toList());
     }
-    else
+    // Add non-tau events wherever they are not hidden. In the asynchronous case,
+    // ticks are hidden, while in the synchronous case they are not.
+    else if (!asyncSemantics || event.type() == Event::User)
     {
       if (!leftHides.contains(event)) left.append(event);
       if (!rightHides.contains(event)) right.append(event);
@@ -594,12 +704,12 @@ QHash<int, QList<Event> >
   return ret;
 }
 
-QString POperator::whyEvent(const QList<Event> & events) const
+QString POperator::whyEvent(const QList<Event> & events, bool asyncSemantics) const
 {
   QStringList complaints;
   bool tauChase = false;
   foreach (Event event, events)
-    if (event.type() == Event::Tau && opProcess().offersEvent(event))
+    if (event.type() == Event::Tau && opProcess().offersEvent(asyncSemantics, event))
       tauChase = true;
   if (tauChase)
   {
@@ -615,36 +725,36 @@ QString POperator::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  POperator::successorEvents(const QList<Event> & events) const
+  POperator::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 1);
 }
 
-QString PPrefix::whyEvent(const QList<Event> &) const
+QString PPrefix::whyEvent(const QList<Event> &, bool) const
 {
   return tr("The event offered is %1.").arg(opEvent().displayText());
 }
 
 QHash<int, QList<Event> >
-  PPrefix::successorEvents(const QList<Event> &) const
+  PPrefix::successorEvents(const QList<Event> &, bool) const
 {
   // What a prefix offers does not depend on its component.
   return QHash<int, QList<Event> >();
 }
 
-QString PProcCall::whyEvent(const QList<Event> & events) const
+QString PProcCall::whyEvent(const QList<Event> & events, bool) const
 {
   return tr("The component does not offer %1.", "", events.count())
     .arg(Event::displayEventList(_session, events, Event::CommaOr));
 }
 
 QHash<int, QList<Event> >
-  PProcCall::successorEvents(const QList<Event> & events) const
+  PProcCall::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 1);
 }
 
-QString PRename::whyEvent(const QList<Event> & events) const
+QString PRename::whyEvent(const QList<Event> & events, bool) const
 {
   QStringList complaints;
   QList<QPair<Event, Event> > evMap = opEventMap();
@@ -710,7 +820,7 @@ QString PRename::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  PRename::successorEvents(const QList<Event> & events) const
+  PRename::successorEvents(const QList<Event> & events, bool) const
 {
   QSet<Event> ret;
   QPair<Event, Event> pair;
@@ -739,7 +849,7 @@ QHash<int, QList<Event> >
   return _duplicateList(ret.toList(), 1);
 }
 
-QString PSequentialComp::whyEvent(const QList<Event> & events) const
+QString PSequentialComp::whyEvent(const QList<Event> & events, bool) const
 {
   QStringList complaints;
   QList<Event> userEvents;
@@ -770,7 +880,7 @@ QString PSequentialComp::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  PSequentialComp::successorEvents(const QList<Event> & events) const
+  PSequentialComp::successorEvents(const QList<Event> & events, bool) const
 {
   // Want the first successor to offer everything that we are looking for, plus tick
   // if a tau is requested. Do the search for tau and tick in a loop since contains()
@@ -791,19 +901,20 @@ QHash<int, QList<Event> >
   return _duplicateList(ret, 1);
 }
 
-QString PSlidingChoice::whyEvent(const QList<Event> & events) const
+QString PSlidingChoice::whyEvent(const QList<Event> & events, bool) const
 {
   return tr("The first component does not offer %1.", "", events.count())
     .arg(Event::displayEventList(_session, events, Event::CommaOr));
 }
 
 QHash<int, QList<Event> >
-  PSlidingChoice::successorEvents(const QList<Event> & events) const
+  PSlidingChoice::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 1);
 }
 
-QString PSynchronisingExternalChoice::whyEvent(const QList<Event> & events) const
+QString PSynchronisingExternalChoice::whyEvent(const QList<Event> & events, bool)
+  const
 {
   QStringList complaints;
   QList<Event> inInterface;
@@ -833,13 +944,13 @@ QString PSynchronisingExternalChoice::whyEvent(const QList<Event> & events) cons
   return complaints.join("\n");
 }
 
-QHash<int, QList<Event> >
-  PSynchronisingExternalChoice::successorEvents(const QList<Event> & events) const
+QHash<int, QList<Event> > PSynchronisingExternalChoice::successorEvents(
+  const QList<Event> & events, bool) const
 {
   return _duplicateList(events, opProcesses().count());
 }
 
-QString PSynchronisingInterrupt::whyEvent(const QList<Event> & events) const
+QString PSynchronisingInterrupt::whyEvent(const QList<Event> & events, bool) const
 {
   QStringList complaints;
   QList<Event> inInterface;
@@ -871,7 +982,7 @@ QString PSynchronisingInterrupt::whyEvent(const QList<Event> & events) const
 }
 
 QHash<int, QList<Event> >
-  PSynchronisingInterrupt::successorEvents(const QList<Event> & events) const
+  PSynchronisingInterrupt::successorEvents(const QList<Event> & events, bool) const
 {
   return _duplicateList(events, 2);
 }

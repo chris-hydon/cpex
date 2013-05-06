@@ -179,7 +179,8 @@ class PAlphaParallel : public PNary
 
 public:
   QList<QList<Event> > opAlphabets() const;
-  PAlphaParallel(void * p, const CSPMSession * s) : PBase(p, s, AlphaParallel) {}
+  PAlphaParallel(void * p, const CSPMSession * s) : PBase(p, s, AlphaParallel),
+    _loadedEvent(false) {}
   virtual QString toolTip() const;
   virtual QString whyEvent(const QList<Event> &, bool) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
@@ -304,7 +305,8 @@ class PPrefix : public PUnary
 
 public:
   Event opEvent() const;
-  PPrefix(void * p, const CSPMSession * s) : PBase(p, s, Prefix) {}
+  PPrefix(void * p, const CSPMSession * s) : PBase(p, s, Prefix),
+    _loadedEvent(false) {}
   virtual QString whyEvent(const QList<Event> &, bool) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
     const;
@@ -382,7 +384,8 @@ class PProcCall : public PBase
 
 public:
   QPair<Process, QString> opProcCall() const;
-  PProcCall(void * p, const CSPMSession * s) : PBase(p, s, ProcCall) {}
+  PProcCall(void * p, const CSPMSession * s) : PBase(p, s, ProcCall),
+    _loadedProcess(false) {}
   virtual QString whyEvent(const QList<Event> &, bool) const;
   virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
     const;

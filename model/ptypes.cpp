@@ -772,6 +772,10 @@ QString PRename::whyEvent(const QList<Event> & events, bool) const
   }
   foreach (pair, evMap)
   {
+    if (pair.first == pair.second)
+    {
+      continue;
+    }
     if (mapTo.contains(pair.first))
     {
       mapTo.value(pair.first)->append(pair.second);

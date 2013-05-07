@@ -2,6 +2,7 @@
 #define PROGRAMSTATE_H
 
 #include "cspmsession.h"
+#include "csperror.h"
 #include <QMap>
 
 class ProgramState
@@ -13,12 +14,15 @@ public:
   static CSPMSession * currentSession();
   static CSPMSession * blankSession();
   static void setCurrentSession(CSPMSession * session);
+  static QList<CSPError *> getErrors();
+  static void logError(CSPError *);
   static void cleanup();
 
 private:
   static QMap<QString, CSPMSession *> _sessions;
   static CSPMSession * _currentSession;
   static CSPMSession * _blankSession;
+  static QList<CSPError *> _errors;
 };
 
 #endif // PROGRAMSTATE_H

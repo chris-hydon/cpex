@@ -16,6 +16,7 @@
 #include <QMainWindow>
 #include <QShortcut>
 #include "model/expression.h"
+#include "widget/clickablelabel.h"
 #include "cspmsession.h"
 
 class Tab;
@@ -35,6 +36,7 @@ public:
   void closeSessionTabs(const CSPMSession *);
   void newSession(const QString &);
   void setCurrentSession(CSPMSession *);
+  void setErrorCount(int);
 
 public slots:
   void actionOpen();
@@ -49,6 +51,7 @@ public slots:
   void tabChanged(int);
   void newTabFromExpression(const Expression & = Expression());
   void setTabFromExpression(const Expression & = Expression());
+  void showErrorLog();
 
 private:
   void _invalidExpressionMessage();
@@ -64,10 +67,12 @@ private:
   QAction * uiMenuSessionReload;
   QAction * uiMenuSessionCloseAll;
   QAction * uiMenuSessionReloadAll;
+  QAction * uiMenuSessionErrors;
   QMenu * uiMenuBehaviour;
   QAction * uiMenuBehaviourSync;
   QAction * uiMenuBehaviourAsync;
   QStatusBar * uiStatus;
+  ClickableLabel * uiStatusErrors;
   QWidget * uiCentral;
   QSplitter * uiSplitter;
   QTreeView * uiSessions;

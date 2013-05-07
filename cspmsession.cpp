@@ -13,6 +13,7 @@ CSPMSession::CSPMSession() : _procs(new QSet<Process>),
   _file = NULL;
   _procCallNames = QStringList();
   _procCallNamesLoaded = true;
+  _displayName = "(default)";
 
   // This is likely to get very big.
   _procs->reserve(20000);
@@ -61,9 +62,15 @@ bool CSPMSession::loadFile(const QString & fileName)
     {
       _displayName = disp + QString::number(i++);
     }
+    getWarnings();
     return true;
   }
-  return false;
+  else
+  {
+    getWarnings();
+    getErrors();
+    return false;
+  }
 }
 
 bool CSPMSession::reload()
@@ -82,9 +89,20 @@ bool CSPMSession::reload()
       _procCallNamesLoaded = false;
       _procs->clear();
       _events->clear();
+      getWarnings();
       return true;
     }
-    return false;
+    else
+    {
+      // To avoid repeating code, briefly change _hsSession.
+      void * temp = _hsSession;
+      _hsSession = sess;
+      getWarnings();
+      getErrors();
+      _hsSession = temp;
+      cspm_session_free(sess);
+      return false;
+    }
   }
 
   // No file, so this is a blank session - we don't add anything so there's nothing
@@ -114,9 +132,12 @@ QStringList CSPMSession::getErrors() const
   quint32 count = 0;
   cspm_session_get_errors(_hsSession, &errors, &count);
   QStringList ret;
+  QString message;
   for (quint32 i = 0; i < count; i++)
   {
-    ret << QString::fromWCharArray(errors[i]);
+    message = QString::fromWCharArray(errors[i]);
+    ret << message;
+    ProgramState::logError(new CSPError(this, CSPError::Error, message));
   }
 
   free(errors);
@@ -130,9 +151,12 @@ QStringList CSPMSession::getWarnings() const
   quint32 count = 0;
   cspm_session_get_warnings(_hsSession, &warns, &count);
   QStringList ret;
+  QString message;
   for (quint32 i = 0; i < count; i++)
   {
-    ret << QString::fromWCharArray(warns[i]);
+    message = QString::fromWCharArray(warns[i]);
+    ret << message;
+    ProgramState::logError(new CSPError(this, CSPError::Warning, message));
   }
 
   free(warns);

@@ -22,6 +22,7 @@ void ProcessTree::showContextMenu(const QPoint & pos)
   QAction * inspectCT = menu.addAction("Inspect");
   QAction * inspectNT = menu.addAction("Inspect (New Tab)");
 
+  if (!indexAt(pos).isValid()) return;
   Process proc = static_cast<ProcessItem *>(indexAt(pos).internalPointer())->process();
 
   QAction * selectedItem = menu.exec(mapToGlobal(pos));

@@ -61,11 +61,11 @@ Expression::Expression(const QString & expr)
   }
 
   // Compile the expression. If that fails, make this expression invalid.
-  // TODO: Error messages in the status bar.
   _d->rootProc = ProgramState::currentSession()->compileExpression(caps[3]);
   if (!_d->rootProc.isValid())
   {
     _d->expr = QString();
+    _d->session->getErrors();
   }
   else
   {

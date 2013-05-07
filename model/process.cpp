@@ -3,6 +3,7 @@
 #include "haskell/Cpex/Foreign_stub.h"
 #include "model/ptypes.h"
 #include "cspmsession.h"
+#include "programstate.h"
 
 #include <HsFFI.h>
 #include <QHash>
@@ -146,8 +147,12 @@ QList<QPair<Event, Process> > Process::transitions(bool asyncSemantics) const
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, asyncSemantics, &hsEvents,
-      &hsProcs, &transitionCount);
+    if (!cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, asyncSemantics,
+      &hsEvents, &hsProcs, &transitionCount))
+    {
+      _d->session->getErrors();
+      throw ProgramState::getErrors().last();
+    }
 
     for (quint32 i = 0; i < transitionCount; i++)
     {

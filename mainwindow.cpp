@@ -2,8 +2,10 @@
 
 #include <QApplication>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QMouseEvent>
 #include <QTabBar>
+#include <QTableWidget>
 #include <QTextDocument>
 #include "model/sessionmodel.h"
 #include "widget/tab.h"
@@ -99,6 +101,9 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiMenuSessionCloseAll->setText(tr("Close All"));
   uiMenuSessionCloseAll->setStatusTip(tr(
     "Close all sessions and remove them from the list, and close all tabs."));
+  uiMenuSessionErrors = new QAction(uiMenuSession);
+  uiMenuSessionErrors->setText(tr("Error log"));
+  uiMenuSessionErrors->setStatusTip(tr("Show a log of all errors encountered."));
   uiMenuSessionExit = new QAction(uiMenuSession);
   uiMenuSessionExit->setText(tr("E&xit"));
   uiMenuSessionExit->setStatusTip(tr("Close the program."));
@@ -124,6 +129,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiMenuSession->addAction(uiMenuSessionReloadAll);
   uiMenuSession->addAction(uiMenuSessionClose);
   uiMenuSession->addAction(uiMenuSessionCloseAll);
+  uiMenuSession->addAction(uiMenuSessionErrors);
   uiMenuSession->addAction(uiMenuSessionExit);
   uiMenu->addAction(uiMenuBehaviour->menuAction());
   uiMenuBehaviour->addAction(uiMenuBehaviourSync);
@@ -135,6 +141,10 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
 
   // Status bar
   uiStatus = new QStatusBar(this);
+  uiStatusErrors = new ClickableLabel(uiStatus);
+  uiStatusErrors->setPixmap(QPixmap(":/images/error.png"));
+  uiStatusErrors->setVisible(false);
+  uiStatus->addPermanentWidget(uiStatusErrors);
 
   // Assemble main window.
   setCentralWidget(uiCentral);
@@ -167,6 +177,8 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   );
   connect(uiTabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(uiNewTabButton, SIGNAL(clicked()), this, SLOT(newBlankTab()));
+  connect(uiStatusErrors, SIGNAL(clicked()), this, SLOT(showErrorLog()));
+  connect(uiMenuSessionErrors, SIGNAL(triggered()), this, SLOT(showErrorLog()));
 
   // A file may be passed as an argument to load on launch.
   QStringList args = QApplication::arguments();
@@ -341,14 +353,17 @@ void MainWindow::closeTab(int index)
 
 void MainWindow::tabChanged(int index)
 {
-  Tab * tab = static_cast<Tab *>(uiTabs->widget(index));
-  if (tab->behaviour(Tab::AsynchronousTermination))
+  if (index != -1)
   {
-    uiMenuBehaviourAsync->setChecked(true);
-  }
-  else
-  {
-    uiMenuBehaviourSync->setChecked(true);
+    Tab * tab = static_cast<Tab *>(uiTabs->widget(index));
+    if (tab->behaviour(Tab::AsynchronousTermination))
+    {
+      uiMenuBehaviourAsync->setChecked(true);
+    }
+    else
+    {
+      uiMenuBehaviourSync->setChecked(true);
+    }
   }
 }
 
@@ -445,4 +460,49 @@ void MainWindow::setTabFromExpression(const Expression & expression)
 void MainWindow::_invalidExpressionMessage()
 {
   uiStatus->showMessage(tr("Invalid expression for the current file."), 5000);
+}
+
+void MainWindow::setErrorCount(int count)
+{
+  if (!count)
+  {
+    uiStatusErrors->setVisible(false);
+  }
+  else
+  {
+    uiStatusErrors->setVisible(true);
+    uiStatusErrors->setToolTip(tr("%n error(s)", "", count));
+  }
+}
+
+void MainWindow::showErrorLog()
+{
+  static QString tError = tr("Error: %1");
+  static QString tWarning = tr("Warning: %1");
+
+  QList<CSPError *> errors = ProgramState::getErrors();
+  QTableWidget * table = new QTableWidget(errors.count(), 2);
+  for (int i = 0; i < errors.count(); i++)
+  {
+    table->setItem(i, 0, new QTableWidgetItem(errors[i]->sessionName()));
+    table->setItem(i, 1, new QTableWidgetItem(
+      errors[i]->type() == CSPError::Error ? tError.arg(errors[i]->message())
+      : tWarning.arg(errors[i]->message())));
+  }
+
+  QStringList headers;
+  headers << tr("Session");
+  headers << tr("Message");
+
+  table->setWindowTitle(tr("Error log"));
+  table->setWindowFlags(Qt::Window);
+  table->resize(800, 400);
+  table->setHorizontalHeaderLabels(headers);
+  table->setSelectionBehavior(QAbstractItemView::SelectRows);
+  table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  table->verticalHeader()->setVisible(false);
+  table->setTextElideMode(Qt::ElideNone);
+  table->horizontalHeader()->setStretchLastSection(true);
+  table->resizeRowsToContents();
+  table->show();
 }

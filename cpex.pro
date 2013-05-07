@@ -46,7 +46,9 @@ SOURCES += \
     cspmsession.cpp \
     main.cpp \
     mainwindow.cpp \
-    programstate.cpp
+    programstate.cpp \
+    csperror.cpp \
+    widget/clickablelabel.cpp
 
 HEADERS += \
     delegate/processitemdelegate.h \
@@ -64,7 +66,9 @@ HEADERS += \
     widget/tracelistwidget.h \
     cspmsession.h \
     mainwindow.h \
-    programstate.h
+    programstate.h \
+    csperror.h \
+    widget/clickablelabel.h
 
 OTHER_FILES += \
     haskell/Cpex/Transitions.hs \

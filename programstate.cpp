@@ -1,8 +1,10 @@
 #include "programstate.h"
+#include "mainwindow.h"
 
 QMap<QString, CSPMSession *> ProgramState::_sessions;
 CSPMSession * ProgramState::_currentSession = NULL;
 CSPMSession * ProgramState::_blankSession = NULL;
+QList<CSPError *> ProgramState::_errors;
 
 QMap<QString, CSPMSession *> ProgramState::getSessions()
 {
@@ -63,14 +65,28 @@ void ProgramState::setCurrentSession(CSPMSession * session)
   ProgramState::_currentSession = session;
 }
 
+QList<CSPError *> ProgramState::getErrors()
+{
+  return _errors;
+}
+
+void ProgramState::logError(CSPError * error)
+{
+  _errors.append(error);
+  MainWindow::get()->setErrorCount(_errors.length());
+}
+
 void ProgramState::cleanup()
 {
-  CSPMSession * session;
   QList<CSPMSession *> toDelete = ProgramState::_sessions.values();
   while (!toDelete.isEmpty())
   {
-    session = toDelete.takeFirst();
-    delete session;
+    delete toDelete.takeFirst();
+  }
+
+  while (!_errors.isEmpty())
+  {
+    delete _errors.takeFirst();
   }
 
   if (_blankSession != NULL)

@@ -30,6 +30,7 @@ public:
   QHash<int, QList<Event> > eventsRequiredBySuccessors(const QList<Event> &, bool)
     const;
   bool isValid() const;
+  QStringList errors() const;
   const CSPMSession * session() const;
   bool operator ==(const Process & other) const;
   uint hash() const;

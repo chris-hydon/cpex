@@ -47,7 +47,7 @@ foreign export ccall
 foreign export ccall
   cpex_process_hash :: ProcPtr -> IO CUInt
 foreign export ccall
-  cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
+  cpex_process_operator :: SessionPtr -> ProcPtr -> Ptr CUChar -> IO CUInt
 foreign export ccall
   cpex_op_event :: SessionPtr -> ProcPtr -> Ptr EventPtr -> IO CUInt
 foreign export ccall
@@ -105,21 +105,20 @@ operatorNum (PProcCall _ _) = 16
 -- Helper functions for reading from and writing to stable pointers.
 class Transferrable a where
   input :: StablePtr a -> NativeSessionMonad a
-  output :: SessionPtr -> a -> Ptr (StablePtr a) -> NativeSessionMonad ()
-  outputArray :: SessionPtr -> [a] -> Ptr (Ptr (StablePtr a)) ->
-    NativeSessionMonad ()
+  output :: a -> Ptr (StablePtr a) -> NativeSessionMonad ()
+  outputArray :: [a] -> Ptr (Ptr (StablePtr a)) -> NativeSessionMonad ()
 
   input p = liftIO $ deRefStablePtr p
 
 instance Transferrable UProc where
-  output _ x o = liftIO $ newStablePtr x >>= poke o
-  outputArray _ xs o = liftIO $ mapM newStablePtr xs >>= newArray >>= poke o
+  output x o = liftIO $ newStablePtr x >>= poke o
+  outputArray xs o = liftIO $ mapM newStablePtr xs >>= newArray >>= poke o
 
 instance Transferrable Event where
-  output s x o = do
+  output x o = do
     t <- gets events
     liftIO $ pullevent t x >>= poke o
-  outputArray s xs o = do
+  outputArray xs o = do
     t <- gets events
     liftIO $ mapM (pullevent t) xs >>= newArray >>= poke o
 
@@ -148,8 +147,8 @@ cpex_transitions sessPtr inProc inOmega outEvents outProcs outCount =
     o <- gets omega
     let (es, pns) = unzip $ map (simplify (if inOmega then o else csp_stop)) $
           transitions (if inOmega then Just o else Nothing) p
-    outputArray sessPtr es outEvents
-    outputArray sessPtr pns outProcs
+    outputArray es outEvents
+    outputArray pns outProcs
     liftIO $ poke outCount $ fromIntegral $ length es
     where simplify o (Tick, _) = (Tick, o)
           simplify _ x = x
@@ -209,10 +208,12 @@ cpex_process_hash inProc = do
 
 -- Input: Process.
 -- Output: A number representing the operator used.
-cpex_process_operator :: ProcPtr -> Ptr CUChar -> IO ()
-cpex_process_operator inProc outOp = do
-  p <- deRefStablePtr inProc
-  poke outOp $ fromIntegral $ operatorNum p
+cpex_process_operator :: SessionPtr -> ProcPtr -> Ptr CUChar -> IO CUInt
+cpex_process_operator sessPtr inProc outOp = runSession sessPtr $ do
+  p <- input inProc
+  -- Force evaluation of p in case an error exists but has not evaluated yet.
+  proc <- if p == p then return p else return p
+  liftIO $ poke outOp $ fromIntegral $ operatorNum proc
 
 -- Input: Process.
 -- Output: The single event parameter for the process. Only valid for Prefix
@@ -224,7 +225,7 @@ cpex_op_event sessPtr inProc outEvent = runSession sessPtr $ do
   let e = get_event p
   case e of
     Just ev -> do
-      output sessPtr ev outEvent
+      output ev outEvent
     Nothing -> panic "The input process is not a prefix operator."
   where get_event (PUnaryOp (PPrefix ev) _) = Just ev
         get_event _ = Nothing
@@ -242,7 +243,7 @@ cpex_op_events sessPtr inProc outEvents outSize = runSession sessPtr $ do
   let es = get_events p
   case es of
     Just es -> do
-      outputArray sessPtr (F.toList es) outEvents
+      outputArray (F.toList es) outEvents
       liftIO $ poke outSize $ fromIntegral $ S.length es
     Nothing -> panic "The input process does not take a set of events."
   where get_events (PBinaryOp (PException evs) _ _) = Just evs
@@ -265,8 +266,8 @@ cpex_op_event_map sessPtr inProc outLeft outRight outSize = runSession sessPtr $
   case em of
     Just em -> do
       let eml = F.toList em
-      outputArray sessPtr (map fst eml) outLeft
-      outputArray sessPtr (map snd eml) outRight
+      outputArray (map fst eml) outLeft
+      outputArray (map snd eml) outRight
       liftIO $ poke outSize $ fromIntegral $ S.length em
     Nothing -> panic "The input process does not take an event map."
   where get_event_map (PBinaryOp (PLinkParallel evm) _ _) = Just evm
@@ -306,7 +307,7 @@ cpex_op_process sessPtr inProc outProc = runSession sessPtr $ do
   let pn = next p
   case pn of
     Just pn -> do
-      output sessPtr pn outProc
+      output pn outProc
     Nothing -> panic "The input process is not a unary operator."
   where next (PUnaryOp _ pn) = Just pn
         next _ = Nothing
@@ -320,8 +321,8 @@ cpex_op_process2 sessPtr inProc outLeft outRight = runSession sessPtr $ do
   let pn = next p
   case pn of
     Just (p1, p2) -> do
-      output sessPtr p1 outLeft
-      output sessPtr p2 outRight
+      output p1 outLeft
+      output p2 outRight
     Nothing -> panic "The input process is not a binary operator."
   where next (PBinaryOp _ p1 p2) = Just (p1, p2)
         next _ = Nothing
@@ -337,7 +338,7 @@ cpex_op_processes sessPtr inProc outProcs outSize = runSession sessPtr $ do
   let pn = next p
   case pn of
     Just pn -> do
-      outputArray sessPtr (F.toList pn) outProcs
+      outputArray (F.toList pn) outProcs
       liftIO $ poke outSize $ fromIntegral $ S.length pn
     Nothing -> panic "The input process is not an n-ary operator."
   where next (POp _ pn) = Just pn
@@ -353,7 +354,7 @@ cpex_op_proccall sessPtr inProc outProc outName = runSession sessPtr $ do
   let pn = next p
   case pn of
     Just (n, pn) -> do
-      output sessPtr pn outProc
+      output pn outProc
       name <- liftIO $ (newCWString . show . prettyPrint) n
       liftIO $ poke outName name
     Nothing -> panic "The input process is not a ProcCall."
@@ -391,8 +392,10 @@ cpex_proccall_names sessPtr outNames outParams outCount = runSession sessPtr $ d
 cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
 cpex_expression_value sessPtr inName outProc = runSession sessPtr $ do
   name <- liftIO $ peekCWString inName
-  VProc expressionValue <- stringToValue TProc name
-  output sessPtr expressionValue outProc
+  VProc proc <- stringToValue TProc name
+  -- Force evaluation of proc in case an error exists but has not evaluated yet.
+  evaluated <- if proc == proc then return proc else return proc
+  output evaluated outProc
 
 -- Input: CSPM session.
 --        String representing an event.
@@ -404,7 +407,7 @@ cpex_string_to_event sessPtr inName outEvent = runSession sessPtr $ do
   ev <- getEvent name
   -- Force evaluation of ev in case an error exists but has not evaluated yet.
   evaluated <- if ev == ev then return ev else return ev
-  output sessPtr evaluated outEvent
+  output evaluated outEvent
   where
     getEvent "_tick" = return Tick
     getEvent "_tau" = return Tau

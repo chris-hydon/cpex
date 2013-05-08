@@ -7,6 +7,7 @@
 #include <QCoreApplication>
 #include <QHash>
 #include <QList>
+#include <QStringList>
 
 class PAlphaParallel;
 class PException;
@@ -25,6 +26,7 @@ class PSlidingChoice;
 class PSynchronisingExternalChoice;
 class PSynchronisingInterrupt;
 class PProcCall;
+class PInvalid;
 
 class PBase
 {
@@ -399,6 +401,23 @@ public:
 private:
   mutable bool _loadedProcess;
   mutable QPair<Process, QString> _proccall;
+};
+
+class PInvalid : public PBase
+{
+  Q_DECLARE_TR_FUNCTIONS(PInvalid)
+
+public:
+  PInvalid(void * p, const CSPMSession * s);
+  virtual QString whyEvent(const QList<Event> &, bool) const
+    { return tr("This process is invalid."); }
+  virtual QHash<int, QList<Event> > successorEvents(const QList<Event> &, bool)
+    const { return QHash<int, QList<Event> >(); }
+  virtual QList<Process> components() const { return QList<Process>(); }
+  QStringList errors() const { return _errors; }
+
+private:
+  QStringList _errors;
 };
 
 #endif // PBASE_H

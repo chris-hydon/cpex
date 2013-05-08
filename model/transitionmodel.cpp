@@ -119,6 +119,17 @@ QVariant TransitionModel::data(const QModelIndex & index, int role) const
   QString ptext = (role == Qt::DisplayRole ? p->process().displayText().toString() :
     p->process().fullText());
 
+  // Invalid error processes.
+  if (!p->process().isValid())
+  {
+    QStringList messages;
+    foreach (QString error, p->process().errors())
+    {
+      messages << QString("<pre style=\"color: red\">%1</pre>").arg(error);
+    }
+    return messages.join("<br />");
+  }
+
   // Top level process, or using "edit role".
   if (p->cause() == Event() || role == Qt::EditRole)
   {

@@ -56,7 +56,11 @@ Process::Process(void * hsPtr, const CSPMSession * session)
 {
   _d = new ProcessData(hsPtr, session);
   unsigned char type = 0;
-  cpex_process_operator(hsPtr, &type);
+  if (!cpex_process_operator(session->getHsPtr(), hsPtr, &type))
+  {
+    _d->backend = new PInvalid(hsPtr, session);
+    return;
+  }
 
   // Choose which backend class to use - this will allow examination of the
   // structure of the processes.
@@ -121,6 +125,11 @@ Process Process::create(void * hsPtr, const CSPMSession * session)
   // Create a new one, then see if it already exists. Behind the scenes, this
   // ends up building the complete process.
   Process p(hsPtr, session);
+  if (!p.isValid())
+  {
+    return p;
+  }
+
   QSet<Process>::const_iterator it = session->procs()->constFind(p);
   if (it == session->procs()->constEnd())
   {
@@ -142,17 +151,18 @@ Process::~Process()
 
 QList<QPair<Event, Process> > Process::transitions(bool asyncSemantics) const
 {
+  if (!isValid())
+  {
+    return QList<QPair<Event, Process> >();
+  }
+
   if ((asyncSemantics && !_d->loadedAsync) || (!asyncSemantics && !_d->loadedSync))
   {
     void ** hsProcs = NULL;
     void ** hsEvents = NULL;
     quint32 transitionCount = 0;
-    if (!cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, asyncSemantics,
-      &hsEvents, &hsProcs, &transitionCount))
-    {
-      _d->session->getErrors();
-      throw ProgramState::getErrors().last();
-    }
+    cpex_transitions(_d->session->getHsPtr(), _d->hsPtr, asyncSemantics, &hsEvents,
+      &hsProcs, &transitionCount);
 
     for (quint32 i = 0; i < transitionCount; i++)
     {
@@ -279,7 +289,18 @@ QHash<int, QList<Event> > Process::eventsRequiredBySuccessors(
 
 bool Process::isValid() const
 {
-  return _d;
+  return _d && _d->backend->type != PBase::Invalid;
+}
+
+QStringList Process::errors() const
+{
+  if (isValid() || !_d)
+  {
+    return QStringList();
+  }
+
+  PInvalid * b = static_cast<PInvalid *>(_d->backend);
+  return b->errors();
 }
 
 const CSPMSession * Process::session() const

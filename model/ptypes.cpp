@@ -990,3 +990,8 @@ QHash<int, QList<Event> >
 {
   return _duplicateList(events, 2);
 }
+
+PInvalid::PInvalid(void * p, const CSPMSession * s) : PBase(p, s, Invalid),
+  _errors(s->getErrors())
+{
+}

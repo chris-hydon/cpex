@@ -76,6 +76,19 @@ void ProgramState::logError(CSPError * error)
   MainWindow::get()->setErrorCount(_errors.length());
 }
 
+void ProgramState::deleteErrors(const QList<int> & indices)
+{
+  // Delete from highest to lowest, otherwise this is unsafe due to takeAt.
+  QList<int> toDelete = indices;
+  qSort(toDelete.begin(), toDelete.end(), qGreater<int>());
+  int count = toDelete.count();
+  for (int i = 0; i < count; i++)
+  {
+    delete _errors.takeAt(toDelete[i]);
+  }
+  MainWindow::get()->setErrorCount(_errors.length());
+}
+
 void ProgramState::cleanup()
 {
   QList<CSPMSession *> toDelete = ProgramState::_sessions.values();

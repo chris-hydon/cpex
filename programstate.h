@@ -16,6 +16,7 @@ public:
   static void setCurrentSession(CSPMSession * session);
   static QList<CSPError *> getErrors();
   static void logError(CSPError *);
+  static void deleteErrors(const QList<int> &);
   static void cleanup();
 
 private:

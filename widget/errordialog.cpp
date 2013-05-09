@@ -2,6 +2,9 @@
 
 #include <QGridLayout>
 #include <QHeaderView>
+#include <QKeyEvent>
+#include <QMenu>
+#include <QModelIndex>
 #include <QPushButton>
 #include "programstate.h"
 
@@ -23,6 +26,9 @@ ErrorDialog::ErrorDialog(QWidget * parent) : QDialog(parent)
   uiTable->verticalHeader()->setVisible(false);
   uiTable->setTextElideMode(Qt::ElideNone);
   uiTable->horizontalHeader()->setStretchLastSection(true);
+  uiTable->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(uiTable, SIGNAL(customContextMenuRequested(QPoint)),
+    this, SLOT(showContextMenu(QPoint)));
 
   QPushButton * close = new QPushButton("Close", this);
   close->setDefault(true);
@@ -70,4 +76,44 @@ void ErrorDialog::errorsChanged()
   {
     _errors = _errors.mid(0, newCount);
   }
+}
+
+void ErrorDialog::showContextMenu(const QPoint & pos)
+{
+  if (uiTable->selectionModel()->selectedIndexes().empty())
+  {
+    return;
+  }
+
+  QMenu menu;
+  QAction * del = menu.addAction("Delete");
+  QAction * selectedItem = menu.exec(uiTable->viewport()->mapToGlobal(pos));
+  if (selectedItem == del)
+  {
+    deleteSelectedRows();
+  }
+}
+
+void ErrorDialog::keyPressEvent(QKeyEvent * event)
+{
+  QDialog::keyPressEvent(event);
+
+  if (event->matches(QKeySequence::Delete))
+  {
+    deleteSelectedRows();
+  }
+}
+
+void ErrorDialog::deleteSelectedRows()
+{
+  QList<int> rows;
+  foreach (QModelIndex index, uiTable->selectionModel()->selectedIndexes())
+  {
+    if (index.column() == 0)
+    {
+      rows << index.row();
+    }
+  }
+  ProgramState::deleteErrors(rows);
+  uiTable->clearSelection();
 }

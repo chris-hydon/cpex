@@ -11,9 +11,14 @@ class ErrorDialog : public QDialog
   Q_OBJECT
 public:
   explicit ErrorDialog(QWidget * = 0);
+  void deleteSelectedRows();
 
 public slots:
   void errorsChanged();
+  void showContextMenu(const QPoint &);
+
+protected:
+  virtual void keyPressEvent(QKeyEvent *);
 
 private:
   QList<CSPError *> _errors;

@@ -17,6 +17,7 @@
 #include <QShortcut>
 #include "model/expression.h"
 #include "widget/clickablelabel.h"
+#include "widget/errordialog.h"
 #include "cspmsession.h"
 
 class Tab;
@@ -78,6 +79,7 @@ private:
   QTreeView * uiSessions;
   QTabWidget * uiTabs;
   QToolButton * uiNewTabButton;
+  ErrorDialog * uiErrors;
 };
 
 #endif // MAINWINDOW_H

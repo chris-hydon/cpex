@@ -146,6 +146,9 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiStatusErrors->setVisible(false);
   uiStatus->addPermanentWidget(uiStatusErrors);
 
+  // Error dialog.
+  uiErrors = new ErrorDialog();
+
   // Assemble main window.
   setCentralWidget(uiCentral);
   setMenuBar(uiMenu);
@@ -473,36 +476,10 @@ void MainWindow::setErrorCount(int count)
     uiStatusErrors->setVisible(true);
     uiStatusErrors->setToolTip(tr("%n error(s)", "", count));
   }
+  uiErrors->errorsChanged();
 }
 
 void MainWindow::showErrorLog()
 {
-  static QString tError = tr("Error: %1");
-  static QString tWarning = tr("Warning: %1");
-
-  QList<CSPError *> errors = ProgramState::getErrors();
-  QTableWidget * table = new QTableWidget(errors.count(), 2);
-  for (int i = 0; i < errors.count(); i++)
-  {
-    table->setItem(i, 0, new QTableWidgetItem(errors[i]->sessionName()));
-    table->setItem(i, 1, new QTableWidgetItem(
-      errors[i]->type() == CSPError::Error ? tError.arg(errors[i]->message())
-      : tWarning.arg(errors[i]->message())));
-  }
-
-  QStringList headers;
-  headers << tr("Session");
-  headers << tr("Message");
-
-  table->setWindowTitle(tr("Error log"));
-  table->setWindowFlags(Qt::Window);
-  table->resize(800, 400);
-  table->setHorizontalHeaderLabels(headers);
-  table->setSelectionBehavior(QAbstractItemView::SelectRows);
-  table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-  table->verticalHeader()->setVisible(false);
-  table->setTextElideMode(Qt::ElideNone);
-  table->horizontalHeader()->setStretchLastSection(true);
-  table->resizeRowsToContents();
-  table->show();
+  uiErrors->show();
 }

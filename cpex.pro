@@ -48,7 +48,8 @@ SOURCES += \
     mainwindow.cpp \
     programstate.cpp \
     csperror.cpp \
-    widget/clickablelabel.cpp
+    widget/clickablelabel.cpp \
+    widget/errordialog.cpp
 
 HEADERS += \
     delegate/processitemdelegate.h \
@@ -68,7 +69,8 @@ HEADERS += \
     mainwindow.h \
     programstate.h \
     csperror.h \
-    widget/clickablelabel.h
+    widget/clickablelabel.h \
+    widget/errordialog.h
 
 OTHER_FILES += \
     haskell/Cpex/Transitions.hs \

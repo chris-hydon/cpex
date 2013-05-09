@@ -147,7 +147,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiStatus->addPermanentWidget(uiStatusErrors);
 
   // Error dialog.
-  uiErrors = new ErrorDialog();
+  uiErrors = new ErrorDialog(this);
 
   // Assemble main window.
   setCentralWidget(uiCentral);

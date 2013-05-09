@@ -71,7 +71,7 @@ foreign export ccall
     IO CUInt
 
 foreign export ccall
-  cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CUInt) ->
+  cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CWString) ->
     Ptr CUInt -> IO CUInt
 foreign export ccall
   cpex_expression_value :: SessionPtr -> CWString -> Ptr ProcPtr -> IO CUInt
@@ -363,27 +363,47 @@ cpex_op_proccall sessPtr inProc outProc outName = runSession sessPtr $ do
 
 -- Input: CSPM session.
 -- Output: Array of strings representing the bound names of proc calls.
---         Array of unsigned ints representing the number of parameters for the
+--         Array of strings representing the format of arguments for the
 --         respective proc call.
-cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CUInt) ->
+cpex_proccall_names :: SessionPtr -> Ptr (Ptr CWString) -> Ptr (Ptr CWString) ->
   Ptr CUInt -> IO CUInt
 cpex_proccall_names sessPtr outNames outParams outCount = runSession sessPtr $ do
   ns <- getBoundNames
   let customs = filter ((flip notElem) $ map name $ builtins False) ns
   pairs <- mapM maybePair customs
-  let (names, paramCounts) = unzip $ catMaybes pairs
-  namesList <- liftIO $ mapM (newCWString . show) names
-  namesArray <- liftIO $ newArray namesList
-  paramsArray <- liftIO $ newArray $ map fromIntegral paramCounts
+  let (names, params) = unzip $ catMaybes pairs
+  namesArray <- liftIO $ mapM (newCWString . show) names >>= newArray
+  paramsArray <- liftIO $ mapM newCWString params >>= newArray
   liftIO $ poke outNames namesArray
   liftIO $ poke outParams paramsArray
   liftIO $ poke outCount $ fromIntegral $ length names
   where maybePair name = do
           ForAll _ t <- typeOfName name
-          return (isProcCall (name, 0) t)
-        isProcCall (name, x) TProc = Just (name, x)
-        isProcCall (name, x) (TFunction _ p) = isProcCall (name, x + 1) p
+          return (isProcCall name t)
+        isProcCall name TProc = Just (name, "")
+        isProcCall name (TFunction [] p)
+          | result == Nothing = Nothing
+          | otherwise = Just (name, (snd . fromJust) result ++ "()")
+          where result = isProcCall name p
+        isProcCall name (TFunction ts p)
+          | result == Nothing = Nothing
+          | otherwise = Just (name, (snd . fromJust) result ++ "(" ++
+            (comma (map parseArg ts)) ++ ")")
+          where result = isProcCall name p
         isProcCall _ _ = Nothing
+  -- The following are default values for argument types which are often (but not
+  -- always) valid. Even if invalid, this gives a prompt for the type of argument
+  -- expected.
+        parseArg TInt = "0"
+        parseArg TBool = "true"
+        parseArg TChar = "'a'"
+        parseArg (TSeq TChar) = "\"string\""
+        parseArg (TTuple []) = "()"
+        parseArg (TTuple ts) = "(" ++ (comma (map parseArg ts)) ++ ")"
+        parseArg (TSet _) = "{}"
+        parseArg _ = "_"
+        comma [] = ""
+        comma xs = foldr1 (\x y -> x ++ ", " ++ y) xs
 
 -- Input: CSPM session.
 --        CSPM expression string.

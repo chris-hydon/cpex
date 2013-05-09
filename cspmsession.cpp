@@ -170,36 +170,21 @@ QStringList CSPMSession::procCallNames() const
   {
     _procCallNamesLoaded = true;
     wchar_t ** strs = NULL;
-    quint32 * lens = NULL;
+    wchar_t ** args = NULL;
     quint32 count = 0;
-    if (!cpex_proccall_names(_hsSession, &strs, &lens, &count))
+    if (!cpex_proccall_names(_hsSession, &strs, &args, &count))
     {
       return QStringList();
     }
 
     for (quint32 i = 0; i < count; i++)
     {
-      QString params = "";
-      if (lens[i] > 0)
-      {
-        params = "(";
-        for (quint32 j = 0; j < lens[i]; j++)
-        {
-          if (j + 1 == lens[i])
-          {
-            params += "_)";
-          }
-          else
-          {
-            params += "_, ";
-          }
-        }
-      }
-      _procCallNames << QString::fromWCharArray(strs[i]) + params;
+      _procCallNames << QString::fromWCharArray(strs[i]) +
+        QString::fromWCharArray(args[i]);
     }
 
     free(strs);
-    free(lens);
+    free(args);
   }
 
   return _procCallNames;

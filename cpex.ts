@@ -2,6 +2,34 @@
 <!DOCTYPE TS>
 <TS version="2.0" language="en_GB">
 <context>
+    <name>ErrorDialog</name>
+    <message>
+        <location filename="widget/errordialog.cpp" line="13"/>
+        <source>Error log</source>
+        <translation>Error log</translation>
+    </message>
+    <message>
+        <location filename="widget/errordialog.cpp" line="19"/>
+        <source>Session</source>
+        <translation>Session</translation>
+    </message>
+    <message>
+        <location filename="widget/errordialog.cpp" line="20"/>
+        <source>Message</source>
+        <translation>Message</translation>
+    </message>
+    <message>
+        <location filename="widget/errordialog.cpp" line="43"/>
+        <source>Error: %1</source>
+        <translation>Error: %1</translation>
+    </message>
+    <message>
+        <location filename="widget/errordialog.cpp" line="44"/>
+        <source>Warning: %1</source>
+        <translation>Warning: %1</translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="mainwindow.cpp" line="53"/>
@@ -55,7 +83,6 @@
     </message>
     <message>
         <location filename="mainwindow.cpp" line="105"/>
-        <location filename="mainwindow.cpp" line="497"/>
         <source>Error log</source>
         <translation>Error log</translation>
     </message>
@@ -100,99 +127,79 @@
         <translation>Use the Omega style behaviour for termination of processes in parallel.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="204"/>
+        <location filename="mainwindow.cpp" line="207"/>
         <source>New Tab</source>
         <translation>New Tab</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="211"/>
+        <location filename="mainwindow.cpp" line="214"/>
         <source>Open a CSP file to begin, then double-click an expression
 in the pane on the left or enter it into the box above.</source>
         <translation>Open a CSP file to begin, then double-click an expression
 in the pane on the left or enter it into the box above.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="218"/>
+        <location filename="mainwindow.cpp" line="224"/>
         <source>Select file to open</source>
         <translation>Select file to open</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="219"/>
+        <location filename="mainwindow.cpp" line="225"/>
         <source>CSP definition files (*.csp);;All files (*.*)</source>
         <translation>CSP definition files (*.csp);;All files (*.*)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="234"/>
+        <location filename="mainwindow.cpp" line="240"/>
         <source>Reloaded file: %1</source>
         <translation>Reloaded file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="238"/>
+        <location filename="mainwindow.cpp" line="244"/>
         <source>Error while reloading file: %1</source>
         <translation>Error while reloading file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="262"/>
+        <location filename="mainwindow.cpp" line="268"/>
         <source>Successfully reloaded all open files.</source>
         <translation>Successfully reloaded all open files.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="266"/>
+        <location filename="mainwindow.cpp" line="272"/>
         <source>Error while reloading the following sessions: %1</source>
         <translation>Error while reloading the following sessions: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="397"/>
+        <location filename="mainwindow.cpp" line="403"/>
         <source>Error while loading file: %1</source>
         <translation>Error while loading file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="401"/>
+        <location filename="mainwindow.cpp" line="407"/>
         <source>Loaded file: %1</source>
         <translation>Loaded file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="413"/>
+        <location filename="mainwindow.cpp" line="419"/>
         <source>Close %1</source>
         <translation>Close %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="415"/>
+        <location filename="mainwindow.cpp" line="421"/>
         <source>Reload %1</source>
         <translation>Reload %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="462"/>
+        <location filename="mainwindow.cpp" line="468"/>
         <source>Invalid expression for the current file.</source>
         <translation>Invalid expression for the current file.</translation>
     </message>
     <message numerus="yes">
-        <location filename="mainwindow.cpp" line="474"/>
+        <location filename="mainwindow.cpp" line="480"/>
         <source>%n error(s)</source>
         <translation>
             <numerusform>%n error</numerusform>
             <numerusform>%n errors</numerusform>
         </translation>
-    </message>
-    <message>
-        <location filename="mainwindow.cpp" line="480"/>
-        <source>Error: %1</source>
-        <translation>Error: %1</translation>
-    </message>
-    <message>
-        <location filename="mainwindow.cpp" line="481"/>
-        <source>Warning: %1</source>
-        <translation>Warning: %1</translation>
-    </message>
-    <message>
-        <location filename="mainwindow.cpp" line="494"/>
-        <source>Session</source>
-        <translation>Session</translation>
-    </message>
-    <message>
-        <location filename="mainwindow.cpp" line="495"/>
-        <source>Message</source>
-        <translation>Message</translation>
     </message>
 </context>
 <context>
@@ -349,6 +356,14 @@ in the pane on the left or enter it into the box above.</translation>
             <numerusform>Neither of the components offer %1.</numerusform>
             <numerusform>Neither of the components offer any of %1.</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>PInvalid</name>
+    <message>
+        <location filename="model/ptypes.h" line="413"/>
+        <source>This process is invalid.</source>
+        <translation>This process is invalid.</translation>
     </message>
 </context>
 <context>
@@ -532,17 +547,17 @@ in the pane on the left or enter it into the box above.</translation>
         <translation> or %1</translation>
     </message>
     <message>
-        <location filename="model/process.cpp" line="258"/>
+        <location filename="model/process.cpp" line="268"/>
         <source>The event given is not valid.</source>
         <translation>The event given is not valid.</translation>
     </message>
     <message>
-        <location filename="model/process.cpp" line="259"/>
+        <location filename="model/process.cpp" line="269"/>
         <source>This component is not relevant to your query.</source>
         <translation>This component is not relevant to your query.</translation>
     </message>
     <message numerus="yes">
-        <location filename="model/process.cpp" line="266"/>
+        <location filename="model/process.cpp" line="276"/>
         <source>This component offers the event(s) %1.</source>
         <translation>
             <numerusform>This component offers the event %1.</numerusform>

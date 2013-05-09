@@ -211,9 +211,12 @@ Tab * MainWindow::createTab()
 void MainWindow::newBlankTab()
 {
   Tab * blankTab = createTab();
-  QLabel * blankTabLabel = new QLabel(tr("Open a CSP file to begin, then double-click an expression\nin the pane on the left or enter it into the box above."), blankTab);
+  QLabel * blankTabLabel = new QLabel(tr(
+    "Open a CSP file to begin, then double-click an expression\nin the pane on the "
+    "left or enter it into the box above."), blankTab);
   blankTabLabel->setAlignment(Qt::AlignCenter);
   blankTab->layout()->addWidget(blankTabLabel);
+  uiTabs->setCurrentWidget(blankTab);
 }
 
 void MainWindow::actionOpen()

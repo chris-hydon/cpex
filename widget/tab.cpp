@@ -190,8 +190,11 @@ void Tab::setupInspector(const Expression & expr)
 
 void Tab::updateExprBox()
 {
-  exprBox->setText(_expression.text(ProgramState::getSessions().count() > 1,
-    _expression.mode() != Expression::Probe));
+  if (_expression.isValid())
+  {
+    exprBox->setText(_expression.text(ProgramState::getSessions().count() > 1,
+      _expression.mode() != Expression::Probe));
+  }
 }
 
 void Tab::displayEventDetails(const QModelIndex & idx)

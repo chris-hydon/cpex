@@ -53,6 +53,7 @@ public slots:
   void newTabFromExpression(const Expression & = Expression());
   void setTabFromExpression(const Expression & = Expression());
   void showErrorLog();
+  void sessionContextMenu(const QPoint &);
 
 private:
   void _invalidExpressionMessage();

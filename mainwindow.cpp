@@ -61,6 +61,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   uiSessions = new QTreeView(uiSplitter);
   uiSessions->setRootIsDecorated(true);
   uiSessions->setHeaderHidden(true);
+  uiSessions->setContextMenuPolicy(Qt::CustomContextMenu);
   uiSplitter->addWidget(uiSessions);
   uiTabs = new TabWidget(uiSplitter);
   uiTabs->setDocumentMode(true);
@@ -173,6 +174,10 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   connect(
     uiSessions, SIGNAL(activated(const QModelIndex &)),
     sessModel, SLOT(itemActivated(const QModelIndex &))
+  );
+  connect(
+    uiSessions, SIGNAL(customContextMenuRequested(QPoint)),
+    this, SLOT(sessionContextMenu(QPoint))
   );
   connect(
     uiTabs, SIGNAL(tabCloseRequested(int)),
@@ -485,4 +490,46 @@ void MainWindow::setErrorCount(int count)
 void MainWindow::showErrorLog()
 {
   uiErrors->show();
+}
+
+void MainWindow::sessionContextMenu(const QPoint & pos)
+{
+  static QString probe = "%1:probe:%2";
+  static QString inspect = "%1:inspect:%2";
+
+  // Ensure that we are right-clicking a process with no blanks.
+  QModelIndex index = uiSessions->indexAt(pos);
+  if (!index.isValid()) return;
+  SessionModel * model = static_cast<SessionModel *>(uiSessions->model());
+  QString procStr = model->getProcInputString(index);
+  QString sessionName = model->getSession(index)->displayName();
+  if (procStr == QString() || procStr.contains("_")) return;
+
+  QMenu menu;
+  QAction * probeCT = menu.addAction("Probe");
+  QAction * probeNT = menu.addAction("Probe (New Tab)");
+  QAction * inspectCT = menu.addAction("Inspect");
+  QAction * inspectNT = menu.addAction("Inspect (New Tab)");
+
+  QAction * selectedItem = menu.exec(uiSessions->mapToGlobal(pos));
+  if (selectedItem == probeCT)
+  {
+    Expression e(probe.arg(sessionName, procStr));
+    setTabFromExpression(e);
+  }
+  else if (selectedItem == probeNT)
+  {
+    Expression e(probe.arg(sessionName, procStr));
+    newTabFromExpression(e);
+  }
+  else if (selectedItem == inspectCT)
+  {
+    Expression e(inspect.arg(sessionName, procStr));
+    setTabFromExpression(e);
+  }
+  else if (selectedItem == inspectNT)
+  {
+    Expression e(inspect.arg(sessionName, procStr));
+    newTabFromExpression(e);
+  }
 }

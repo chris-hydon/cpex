@@ -190,32 +190,53 @@ void SessionModel::removeAllSessions()
   emit layoutChanged();
 }
 
-void SessionModel::itemActivated(const QModelIndex & index)
+QString SessionModel::getProcInputString(const QModelIndex & index) const
 {
+  if (!index.isValid())
+  {
+    return QString();
+  }
+
   const SessionItem * item = static_cast<const SessionItem *>(index.internalPointer());
-  CSPMSession * session = NULL;
   if (item->_type == SessionItem::ProcCall)
   {
-    session = item->_parent->_session;
+    return item->_displayStr;
   }
   else
   {
-    session = item->_session;
+    return QString();
+  }
+}
+
+CSPMSession * SessionModel::getSession(const QModelIndex & index) const
+{
+  if (!index.isValid())
+  {
+    return NULL;
   }
 
+  const SessionItem * item = static_cast<const SessionItem *>(index.internalPointer());
+  if (item->_type == SessionItem::ProcCall)
+  {
+    return item->_parent->_session;
+  }
+  else
+  {
+    return item->_session;
+  }
+}
+
+void SessionModel::itemActivated(const QModelIndex & index)
+{
+  CSPMSession * session = getSession(index);
   if (!(session == ProgramState::currentSession()))
   {
     MainWindow::get()->setCurrentSession(session);
   }
 
-  if (item->_type == SessionItem::ProcCall)
+  QString procStr = getProcInputString(index);
+  if (!procStr.contains('_'))
   {
-    if (item->_displayStr.contains('_'))
-    {
-    }
-    else
-    {
-      MainWindow::get()->setTabFromExpression(Expression(item->_displayStr));
-    }
+    MainWindow::get()->setTabFromExpression(Expression(procStr));
   }
 }

@@ -1,8 +1,9 @@
 #ifndef SESSIONMODEL_H
 #define SESSIONMODEL_H
 
-#include "cspmsession.h"
 #include <QAbstractItemModel>
+#include "cspmsession.h"
+#include "model/expression.h"
 
 class SessionItem;
 
@@ -22,6 +23,9 @@ public:
   void reloadSession(CSPMSession *);
   void removeSession(CSPMSession *);
   void removeAllSessions();
+
+  QString getProcInputString(const QModelIndex & index) const;
+  CSPMSession * getSession(const QModelIndex & index) const;
 
 public slots:
   void itemActivated(const QModelIndex & index);

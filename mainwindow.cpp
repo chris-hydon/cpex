@@ -287,6 +287,16 @@ void MainWindow::actionClose()
   static_cast<SessionModel *>(uiSessions->model())->removeSession(session);
   ProgramState::deleteSession(session);
   setCurrentSession(NULL);
+
+  // If there is only one session left, update all tabs to remove the session name
+  // from the input string.
+  if (ProgramState::getSessions().count() == 1)
+  {
+    for (int i = 0; i < uiTabs->count(); i++)
+    {
+      static_cast<Tab *>(uiTabs->widget(i))->updateExprBox();
+    }
+  }
 }
 
 void MainWindow::actionCloseAll()
@@ -412,6 +422,16 @@ void MainWindow::newSession(const QString & file)
     status = tr("Loaded file: %1").arg(file);
     static_cast<SessionModel *>(uiSessions->model())->addSession(opened);
     setCurrentSession(opened);
+
+    // If this is the second open session, update all tabs to add the session name
+    // to the input string.
+    if (ProgramState::getSessions().count() == 2)
+    {
+      for (int i = 0; i < uiTabs->count(); i++)
+      {
+        static_cast<Tab *>(uiTabs->widget(i))->updateExprBox();
+      }
+    }
   }
   uiStatus->showMessage(status, 5000);
 }

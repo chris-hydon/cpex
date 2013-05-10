@@ -47,7 +47,7 @@ public:
 private:
   QExplicitlySharedDataPointer<EventData> _d;
 
-  Event(void *);
+  Event(const CSPMSession *, void *);
   void _lazyLoad() const;
 };
 

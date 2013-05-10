@@ -34,7 +34,8 @@ foreign export ccall
   cpex_transitions :: SessionPtr -> ProcPtr -> Bool -> Ptr (Ptr EventPtr) ->
     Ptr (Ptr ProcPtr) -> Ptr CUInt -> IO CUInt
 foreign export ccall
-  cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
+  cpex_event_string :: SessionPtr -> EventPtr -> Ptr CWString -> Ptr CUChar ->
+    IO CUInt
 foreign export ccall
   cpex_events_string :: SessionPtr -> Ptr EventPtr -> CUInt -> Ptr CWString ->
     IO CUInt
@@ -156,12 +157,12 @@ cpex_transitions sessPtr inProc inOmega outEvents outProcs outCount =
 -- Input: Event.
 -- Output: A string representation of that event, suitable for output.
 --         The type of the event (user defined, Tau or Tick).
-cpex_event_string :: EventPtr -> Ptr CWString -> Ptr CUChar -> IO ()
-cpex_event_string inEvent outName outType = do
-  e <- deRefStablePtr inEvent
-  name <- (newCWString . show . prettyPrint) e
-  poke outType $ fromIntegral $ etype e
-  poke outName name
+cpex_event_string :: SessionPtr -> EventPtr -> Ptr CWString -> Ptr CUChar -> IO CUInt
+cpex_event_string sessPtr inEvent outName outType = runSession sessPtr $ do
+  e <- input inEvent
+  name <- liftIO $ (newCWString . show . prettyPrint) e
+  liftIO $ poke outType $ fromIntegral $ etype e
+  liftIO $ poke outName name
   where etype Tau = 1
         etype Tick = 2
         etype _ = 0

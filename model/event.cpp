@@ -8,12 +8,13 @@
 class EventData : public QSharedData
 {
 public:
-  EventData(void * hsPtr) : hsPtr(hsPtr)
+  EventData(const CSPMSession * session, void * hsPtr) : hsPtr(hsPtr),
+    session(session)
   {
   }
 
   EventData(const EventData & other) : QSharedData(other), hsPtr(other.hsPtr),
-    displayText(other.displayText), type(other.type)
+    session(other.session), displayText(other.displayText), type(other.type)
   {
   }
 
@@ -23,6 +24,7 @@ public:
   }
 
   void * hsPtr;
+  const CSPMSession * session;
   mutable QString displayText;
   mutable Event::Type type;
 };
@@ -35,9 +37,9 @@ Event::Event(const Event & other) : _d(other._d)
 {
 }
 
-Event::Event(void * hsPtr)
+Event::Event(const CSPMSession * session, void * hsPtr)
 {
-  _d = new EventData(hsPtr);
+  _d = new EventData(session, hsPtr);
 }
 
 Event::~Event()
@@ -49,7 +51,7 @@ Event Event::create(const CSPMSession * session, void * hsPtr)
   Event e = session->events()->value((size_t) hsPtr);
   if (!e.isValid())
   {
-    e = Event(hsPtr);
+    e = Event(session, hsPtr);
     session->events()->insert((size_t) hsPtr, e);
   }
   return e;
@@ -64,7 +66,7 @@ void Event::_lazyLoad() const
 {
   _d->type = User;
   wchar_t * name = NULL;
-  cpex_event_string(_d->hsPtr, &name, &(_d->type));
+  cpex_event_string(_d->session->getHsPtr(), _d->hsPtr, &name, &(_d->type));
   _d->displayText = QString::fromWCharArray(name);
   free(name);
 }

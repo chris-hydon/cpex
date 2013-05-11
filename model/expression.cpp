@@ -61,7 +61,7 @@ Expression::Expression(const QString & expr)
   }
 
   // Compile the expression. If that fails, make this expression invalid.
-  _d->rootProc = ProgramState::currentSession()->compileExpression(caps[3]);
+  _d->rootProc = _d->session->compileExpression(caps[3]);
   if (!_d->rootProc.isValid())
   {
     _d->expr = QString();

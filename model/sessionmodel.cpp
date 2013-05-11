@@ -229,13 +229,18 @@ CSPMSession * SessionModel::getSession(const QModelIndex & index) const
 void SessionModel::itemActivated(const QModelIndex & index)
 {
   CSPMSession * session = getSession(index);
+  if (session == NULL)
+  {
+    return;
+  }
+
   if (!(session == ProgramState::currentSession()))
   {
     MainWindow::get()->setCurrentSession(session);
   }
 
   QString procStr = getProcInputString(index);
-  if (!procStr.contains('_'))
+  if (procStr != QString() && !procStr.contains('_'))
   {
     MainWindow::get()->setTabFromExpression(Expression(procStr));
   }

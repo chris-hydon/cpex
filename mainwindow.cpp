@@ -234,10 +234,13 @@ void MainWindow::actionOpen()
   }
 }
 
-void MainWindow::actionReload()
+void MainWindow::actionReload(CSPMSession * session)
 {
   QString status;
-  CSPMSession * session = ProgramState::currentSession();
+  if (session == NULL)
+  {
+    session = ProgramState::currentSession();
+  }
   if (session->reload())
   {
     closeSessionTabs(session);
@@ -280,9 +283,12 @@ void MainWindow::actionReloadAll()
   uiStatus->showMessage(status, 5000);
 }
 
-void MainWindow::actionClose()
+void MainWindow::actionClose(CSPMSession * session)
 {
-  CSPMSession * session = ProgramState::currentSession();
+  if (session == NULL)
+  {
+    session = ProgramState::currentSession();
+  }
   closeSessionTabs(session);
   static_cast<SessionModel *>(uiSessions->model())->removeSession(session);
   ProgramState::deleteSession(session);
@@ -517,39 +523,60 @@ void MainWindow::sessionContextMenu(const QPoint & pos)
   static QString probe = "%1:probe:%2";
   static QString inspect = "%1:inspect:%2";
 
-  // Ensure that we are right-clicking a process with no blanks.
+  // Ensure that we are right-clicking a process with no blanks or a session.
   QModelIndex index = uiSessions->indexAt(pos);
   if (!index.isValid()) return;
   SessionModel * model = static_cast<SessionModel *>(uiSessions->model());
   QString procStr = model->getProcInputString(index);
-  QString sessionName = model->getSession(index)->displayName();
-  if (procStr == QString() || procStr.contains("_")) return;
+  CSPMSession * session = model->getSession(index);
 
-  QMenu menu;
-  QAction * probeCT = menu.addAction("Probe");
-  QAction * probeNT = menu.addAction("Probe (New Tab)");
-  QAction * inspectCT = menu.addAction("Inspect");
-  QAction * inspectNT = menu.addAction("Inspect (New Tab)");
+  // Session.
+  if (procStr == QString() && session != NULL)
+  {
+    QMenu menu;
+    QAction * reload = menu.addAction(tr("Reload"));
+    QAction * close = menu.addAction(tr("Close"));
 
-  QAction * selectedItem = menu.exec(uiSessions->mapToGlobal(pos));
-  if (selectedItem == probeCT)
-  {
-    Expression e(probe.arg(sessionName, procStr));
-    setTabFromExpression(e);
+    QAction * selectedItem = menu.exec(uiSessions->mapToGlobal(pos));
+    if (selectedItem == reload)
+    {
+      actionReload(session);
+    }
+    else if (selectedItem == close)
+    {
+      actionClose(session);
+    }
   }
-  else if (selectedItem == probeNT)
+  // Process with no blanks.
+  else if (!procStr.contains("_"))
   {
-    Expression e(probe.arg(sessionName, procStr));
-    newTabFromExpression(e);
-  }
-  else if (selectedItem == inspectCT)
-  {
-    Expression e(inspect.arg(sessionName, procStr));
-    setTabFromExpression(e);
-  }
-  else if (selectedItem == inspectNT)
-  {
-    Expression e(inspect.arg(sessionName, procStr));
-    newTabFromExpression(e);
+    QMenu menu;
+    QAction * probeCT = menu.addAction(tr("Probe"));
+    QAction * probeNT = menu.addAction(tr("Probe (New Tab)"));
+    QAction * inspectCT = menu.addAction(tr("Inspect"));
+    QAction * inspectNT = menu.addAction(tr("Inspect (New Tab)"));
+
+    QString sessionName = session->displayName();
+    QAction * selectedItem = menu.exec(uiSessions->mapToGlobal(pos));
+    if (selectedItem == probeCT)
+    {
+      Expression e(probe.arg(sessionName, procStr));
+      setTabFromExpression(e);
+    }
+    else if (selectedItem == probeNT)
+    {
+      Expression e(probe.arg(sessionName, procStr));
+      newTabFromExpression(e);
+    }
+    else if (selectedItem == inspectCT)
+    {
+      Expression e(inspect.arg(sessionName, procStr));
+      setTabFromExpression(e);
+    }
+    else if (selectedItem == inspectNT)
+    {
+      Expression e(inspect.arg(sessionName, procStr));
+      newTabFromExpression(e);
+    }
   }
 }

@@ -41,9 +41,9 @@ public:
 
 public slots:
   void actionOpen();
-  void actionReload();
+  void actionReload(CSPMSession * = NULL);
   void actionReloadAll();
-  void actionClose();
+  void actionClose(CSPMSession * = NULL);
   void actionCloseAll();
   void actionSyncSemantics();
   void actionAsyncSemantics();

@@ -235,10 +235,17 @@ DisplayString Process::displayText() const
 {
   if (_d->displayText == DisplayString())
   {
-    wchar_t * str = NULL;
-    cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, true, &str);
-    _d->displayText = DisplayString(QString::fromWCharArray(str));
-    free(str);
+    if (fullText().length() < 120)
+    {
+      _d->displayText = DisplayString(fullText());
+    }
+    else
+    {
+      wchar_t * str = NULL;
+      cpex_process_string(_d->session->getHsPtr(), _d->hsPtr, true, &str);
+      _d->displayText = DisplayString(QString::fromWCharArray(str));
+      free(str);
+    }
   }
   return _d->displayText;
 }

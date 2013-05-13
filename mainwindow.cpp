@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QFileDialog>
 #include <QHeaderView>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QTabBar>
 #include <QTableWidget>
@@ -250,6 +251,12 @@ void MainWindow::actionReload(CSPMSession * session)
   else
   {
     status = tr("Error while reloading file: %1").arg(session->fileName());
+    QMessageBox m;
+    m.setText(status);
+    CSPError * error = ProgramState::getErrors().last();
+    m.setInformativeText(tr("This error has been added to the error log."));
+    m.setDetailedText(error->message());
+    m.exec();
   }
   uiStatus->showMessage(status, 5000);
 }
@@ -279,6 +286,16 @@ void MainWindow::actionReloadAll()
   {
     status = tr("Error while reloading the following sessions: %1")
       .arg(failures.join(", "));
+    QMessageBox m;
+    m.setText(status);
+    m.setIcon(QMessageBox::Warning);
+    m.setInformativeText(tr("Do you want to open the error log?"));
+    m.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    m.setDefaultButton(QMessageBox::Yes);
+    if (m.exec() == QMessageBox::Yes)
+    {
+      showErrorLog();
+    }
   }
   uiStatus->showMessage(status, 5000);
 }
@@ -422,6 +439,13 @@ void MainWindow::newSession(const QString & file)
   if (opened == NULL)
   {
     status = tr("Error while loading file: %1").arg(file);
+    QMessageBox m;
+    m.setText(status);
+    m.setIcon(QMessageBox::Warning);
+    CSPError * error = ProgramState::getErrors().last();
+    m.setInformativeText(tr("This error has been added to the error log."));
+    m.setDetailedText(error->message());
+    m.exec();
   }
   else
   {
@@ -496,7 +520,15 @@ void MainWindow::setTabFromExpression(const Expression & expression)
 
 void MainWindow::_invalidExpressionMessage()
 {
-  uiStatus->showMessage(tr("Invalid expression for the current file."), 5000);
+  QString status = tr("Invalid expression for the current file.");
+  uiStatus->showMessage(status, 5000);
+  QMessageBox m;
+  m.setText(status);
+  m.setIcon(QMessageBox::Warning);
+  CSPError * error = ProgramState::getErrors().last();
+  m.setInformativeText(tr("This error has been added to the error log."));
+  m.setDetailedText(error->message());
+  m.exec();
 }
 
 void MainWindow::setErrorCount(int count)

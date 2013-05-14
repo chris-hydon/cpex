@@ -177,6 +177,14 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     sessModel, SLOT(itemActivated(const QModelIndex &))
   );
   connect(
+    sessModel, SIGNAL(expressionActivated(const Expression &)),
+    this, SLOT(setTabFromExpression(const Expression &))
+  );
+  connect(
+    sessModel, SIGNAL(sessionSelected(CSPMSession *)),
+    this, SLOT(setCurrentSession(CSPMSession*))
+  );
+  connect(
     uiSessions, SIGNAL(customContextMenuRequested(QPoint)),
     this, SLOT(sessionContextMenu(QPoint))
   );
@@ -188,6 +196,10 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
   connect(uiNewTabButton, SIGNAL(clicked()), this, SLOT(newBlankTab()));
   connect(uiStatusErrors, SIGNAL(clicked()), this, SLOT(showErrorLog()));
   connect(uiMenuSessionErrors, SIGNAL(triggered()), this, SLOT(showErrorLog()));
+  connect(
+    ProgramState::get(), SIGNAL(errorCountChanged(int)),
+    this, SLOT(setErrorCount(int))
+  );
 
   // A file may be passed as an argument to load on launch.
   QStringList args = QApplication::arguments();
@@ -240,7 +252,7 @@ void MainWindow::actionReload(CSPMSession * session)
   QString status;
   if (session == NULL)
   {
-    session = ProgramState::currentSession();
+    session = ProgramState::get()->currentSession();
   }
   if (session->reload())
   {
@@ -253,7 +265,7 @@ void MainWindow::actionReload(CSPMSession * session)
     status = tr("Error while reloading file: %1").arg(session->fileName());
     QMessageBox m;
     m.setText(status);
-    CSPError * error = ProgramState::getErrors().last();
+    CSPError * error = ProgramState::get()->getErrors().last();
     m.setInformativeText(tr("This error has been added to the error log."));
     m.setDetailedText(error->message());
     m.exec();
@@ -265,7 +277,7 @@ void MainWindow::actionReloadAll()
 {
   QString status;
   QStringList failures;
-  foreach (CSPMSession * session, ProgramState::getSessions().values())
+  foreach (CSPMSession * session, ProgramState::get()->getSessions().values())
   {
     if (session->reload())
     {
@@ -302,18 +314,19 @@ void MainWindow::actionReloadAll()
 
 void MainWindow::actionClose(CSPMSession * session)
 {
+  ProgramState * state = ProgramState::get();
   if (session == NULL)
   {
-    session = ProgramState::currentSession();
+    session = state->currentSession();
   }
   closeSessionTabs(session);
   static_cast<SessionModel *>(uiSessions->model())->removeSession(session);
-  ProgramState::deleteSession(session);
+  state->deleteSession(session);
   setCurrentSession(NULL);
 
   // If there is only one session left, update all tabs to remove the session name
   // from the input string.
-  if (ProgramState::getSessions().count() == 1)
+  if (state->getSessions().count() == 1)
   {
     for (int i = 0; i < uiTabs->count(); i++)
     {
@@ -324,6 +337,8 @@ void MainWindow::actionClose(CSPMSession * session)
 
 void MainWindow::actionCloseAll()
 {
+  ProgramState * state = ProgramState::get();
+
   // Close all tabs.
   while (uiTabs->count() > 0)
   {
@@ -335,9 +350,9 @@ void MainWindow::actionCloseAll()
   static_cast<SessionModel *>(uiSessions->model())->removeAllSessions();
 
   // Delete all sessions internally.
-  foreach (CSPMSession * session, ProgramState::getSessions().values())
+  foreach (CSPMSession * session, state->getSessions().values())
   {
-    ProgramState::deleteSession(session);
+    state->deleteSession(session);
   }
 
   setCurrentSession(NULL);
@@ -434,15 +449,16 @@ void MainWindow::closeSessionTabs(const CSPMSession * session)
 
 void MainWindow::newSession(const QString & file)
 {
+  ProgramState * state = ProgramState::get();
   QString status;
-  CSPMSession * opened = ProgramState::newSession(file);
+  CSPMSession * opened = state->newSession(file);
   if (opened == NULL)
   {
     status = tr("Error while loading file: %1").arg(file);
     QMessageBox m;
     m.setText(status);
     m.setIcon(QMessageBox::Warning);
-    CSPError * error = ProgramState::getErrors().last();
+    CSPError * error = state->getErrors().last();
     m.setInformativeText(tr("This error has been added to the error log."));
     m.setDetailedText(error->message());
     m.exec();
@@ -455,7 +471,7 @@ void MainWindow::newSession(const QString & file)
 
     // If this is the second open session, update all tabs to add the session name
     // to the input string.
-    if (ProgramState::getSessions().count() == 2)
+    if (state->getSessions().count() == 2)
     {
       for (int i = 0; i < uiTabs->count(); i++)
       {
@@ -468,7 +484,7 @@ void MainWindow::newSession(const QString & file)
 
 void MainWindow::setCurrentSession(CSPMSession * session)
 {
-  ProgramState::setCurrentSession(session);
+  ProgramState::get()->setCurrentSession(session);
   if (session != NULL)
   {
     uiMenuSessionClose->setText(tr("Close %1").arg(session->displayName()));
@@ -525,7 +541,7 @@ void MainWindow::_invalidExpressionMessage()
   QMessageBox m;
   m.setText(status);
   m.setIcon(QMessageBox::Warning);
-  CSPError * error = ProgramState::getErrors().last();
+  CSPError * error = ProgramState::get()->getErrors().last();
   m.setInformativeText(tr("This error has been added to the error log."));
   m.setDetailedText(error->message());
   m.exec();

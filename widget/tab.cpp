@@ -192,7 +192,7 @@ void Tab::updateExprBox()
 {
   if (_expression.isValid())
   {
-    exprBox->setText(_expression.text(ProgramState::getSessions().count() > 1,
+    exprBox->setText(_expression.text(ProgramState::get()->getSessions().count() > 1,
       _expression.mode() != Expression::Probe));
   }
 }

@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
   int ret = a.exec();
   delete w;
 
-  ProgramState::cleanup();
+  ProgramState::get()->cleanup();
   hs_exit();
 
   return ret;

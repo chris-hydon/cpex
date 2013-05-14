@@ -57,7 +57,7 @@ bool CSPMSession::loadFile(const QString & fileName)
     QString disp = QFileInfo(_fileName).baseName().replace(QRegExp("[^0-9a-z]"), "");
     _displayName = disp;
     int i = 0;
-    QMap<QString, CSPMSession *> sessions = ProgramState::getSessions();
+    QMap<QString, CSPMSession *> sessions = ProgramState::get()->getSessions();
     while (sessions.contains(_displayName))
     {
       _displayName = disp + QString::number(i++);
@@ -137,7 +137,7 @@ QStringList CSPMSession::getErrors() const
   {
     message = QString::fromWCharArray(errors[i]);
     ret << message;
-    ProgramState::logError(new CSPError(this, CSPError::Error, message));
+    ProgramState::get()->logError(new CSPError(this, CSPError::Error, message));
   }
 
   free(errors);
@@ -156,7 +156,7 @@ QStringList CSPMSession::getWarnings() const
   {
     message = QString::fromWCharArray(warns[i]);
     ret << message;
-    ProgramState::logError(new CSPError(this, CSPError::Warning, message));
+    ProgramState::get()->logError(new CSPError(this, CSPError::Warning, message));
   }
 
   free(warns);

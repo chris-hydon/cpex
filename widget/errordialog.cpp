@@ -43,7 +43,7 @@ void ErrorDialog::errorsChanged()
   static QString tError = tr("Error: %1");
   static QString tWarning = tr("Warning: %1");
 
-  QList<CSPError *> errors = ProgramState::getErrors();
+  QList<CSPError *> errors = ProgramState::get()->getErrors();
   int knownCount = _errors.count();
   int newCount = errors.count();
   uiTable->setRowCount(newCount);
@@ -114,6 +114,6 @@ void ErrorDialog::deleteSelectedRows()
       rows << index.row();
     }
   }
-  ProgramState::deleteErrors(rows);
+  ProgramState::get()->deleteErrors(rows);
   uiTable->clearSelection();
 }

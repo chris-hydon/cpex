@@ -30,6 +30,10 @@ public:
 public slots:
   void itemActivated(const QModelIndex & index);
 
+signals:
+  void expressionActivated(const Expression &);
+  void sessionSelected(CSPMSession *);
+
 private:
   QList<SessionItem *> _sessions;
 };

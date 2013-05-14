@@ -36,8 +36,6 @@ public:
   Tab * currentTab();
   void closeSessionTabs(const CSPMSession *);
   void newSession(const QString &);
-  void setCurrentSession(CSPMSession *);
-  void setErrorCount(int);
 
 public slots:
   void actionOpen();
@@ -50,8 +48,10 @@ public slots:
   void newBlankTab();
   void closeTab(int index = -1);
   void tabChanged(int);
+  void setCurrentSession(CSPMSession *);
   void newTabFromExpression(const Expression & = Expression());
   void setTabFromExpression(const Expression & = Expression());
+  void setErrorCount(int);
   void showErrorLog();
   void sessionContextMenu(const QPoint &);
 

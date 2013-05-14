@@ -23,6 +23,7 @@ Expression::Expression(const Expression & other) : _d(other._d)
 Expression::Expression(const QString & expr)
 {
   _d = new ExpressionData();
+  ProgramState * state = ProgramState::get();
 
   // Expressions are of the form "[filename:][type:]cspstring" where filename is the
   // name of the opened file to use (default to the current session), type is the
@@ -31,7 +32,7 @@ Expression::Expression(const QString & expr)
   // - probe (default)
   // - inspect
   QStringList sessions;
-  foreach (CSPMSession * sess, ProgramState::getSessions())
+  foreach (CSPMSession * sess, state->getSessions())
   {
     sessions << sess->displayName();
   }
@@ -44,11 +45,11 @@ Expression::Expression(const QString & expr)
 
   if (caps[1] == QString())
   {
-    _d->session = ProgramState::currentSession();
+    _d->session = state->currentSession();
   }
   else
   {
-    _d->session = ProgramState::getSessions().value(caps[1]);
+    _d->session = state->getSessions().value(caps[1]);
   }
 
   if (caps[2] == "inspect")

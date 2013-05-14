@@ -1,14 +1,21 @@
 #include "programstate.h"
-#include "mainwindow.h"
 
-QMap<QString, CSPMSession *> ProgramState::_sessions;
-CSPMSession * ProgramState::_currentSession = NULL;
-CSPMSession * ProgramState::_blankSession = NULL;
-QList<CSPError *> ProgramState::_errors;
+ProgramState ProgramState::state;
+
+ProgramState::ProgramState(QObject * parent) : QObject(parent),
+  _sessions(QMap<QString, CSPMSession *>()), _currentSession(NULL),
+  _blankSession(NULL), _errors(QList<CSPError *>())
+{
+}
+
+ProgramState * ProgramState::get()
+{
+  return &state;
+}
 
 QMap<QString, CSPMSession *> ProgramState::getSessions()
 {
-  return ProgramState::_sessions;
+  return _sessions;
 }
 
 CSPMSession * ProgramState::newSession(const QString & fileName)
@@ -16,7 +23,7 @@ CSPMSession * ProgramState::newSession(const QString & fileName)
   CSPMSession * session = new CSPMSession();
   if (session->loadFile(fileName))
   {
-    ProgramState::_sessions.insert(session->displayName(), session);
+    _sessions.insert(session->displayName(), session);
     return session;
   }
   else
@@ -42,7 +49,7 @@ void ProgramState::deleteSession(CSPMSession * session)
   }
 
   // Delete it and remove it from the list of sessions.
-  ProgramState::_sessions.remove(session->displayName());
+  _sessions.remove(session->displayName());
   delete session;
 }
 
@@ -50,7 +57,7 @@ CSPMSession * ProgramState::currentSession()
 {
   if (_currentSession != NULL)
   {
-    return ProgramState::_currentSession;
+    return _currentSession;
   }
 
   if (_blankSession == NULL)
@@ -62,7 +69,7 @@ CSPMSession * ProgramState::currentSession()
 
 void ProgramState::setCurrentSession(CSPMSession * session)
 {
-  ProgramState::_currentSession = session;
+  _currentSession = session;
 }
 
 QList<CSPError *> ProgramState::getErrors()
@@ -73,7 +80,7 @@ QList<CSPError *> ProgramState::getErrors()
 void ProgramState::logError(CSPError * error)
 {
   _errors.append(error);
-  MainWindow::get()->setErrorCount(_errors.length());
+  emit errorCountChanged(_errors.length());
 }
 
 void ProgramState::deleteErrors(const QList<int> & indices)
@@ -86,12 +93,12 @@ void ProgramState::deleteErrors(const QList<int> & indices)
   {
     delete _errors.takeAt(toDelete[i]);
   }
-  MainWindow::get()->setErrorCount(_errors.length());
+  emit errorCountChanged(_errors.length());
 }
 
 void ProgramState::cleanup()
 {
-  QList<CSPMSession *> toDelete = ProgramState::_sessions.values();
+  QList<CSPMSession *> toDelete = _sessions.values();
   while (!toDelete.isEmpty())
   {
     delete toDelete.takeFirst();

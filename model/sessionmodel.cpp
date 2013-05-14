@@ -1,8 +1,6 @@
 #include "sessionmodel.h"
 
-#include "widget/tab.h"
 #include "cspmsession.h"
-#include "mainwindow.h"
 #include "programstate.h"
 #include <QFileInfo>
 #include <QStringList>
@@ -234,14 +232,14 @@ void SessionModel::itemActivated(const QModelIndex & index)
     return;
   }
 
-  if (!(session == ProgramState::currentSession()))
+  if (!(session == ProgramState::get()->currentSession()))
   {
-    MainWindow::get()->setCurrentSession(session);
+    emit sessionSelected(session);
   }
 
   QString procStr = getProcInputString(index);
   if (procStr != QString() && !procStr.contains('_'))
   {
-    MainWindow::get()->setTabFromExpression(Expression(procStr));
+    emit expressionActivated(Expression(procStr));
   }
 }

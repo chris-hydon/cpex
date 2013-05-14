@@ -5,25 +5,34 @@
 #include "csperror.h"
 #include <QMap>
 
-class ProgramState
+class ProgramState : public QObject
 {
+  Q_OBJECT
+
 public:
-  static QMap<QString, CSPMSession *> getSessions();
-  static CSPMSession * newSession(const QString & fileName);
-  static void deleteSession(CSPMSession * session);
-  static CSPMSession * currentSession();
-  static CSPMSession * blankSession();
-  static void setCurrentSession(CSPMSession * session);
-  static QList<CSPError *> getErrors();
-  static void logError(CSPError *);
-  static void deleteErrors(const QList<int> &);
-  static void cleanup();
+  virtual ~ProgramState() {}
+  static ProgramState * get();
+  QMap<QString, CSPMSession *> getSessions();
+  CSPMSession * newSession(const QString & fileName);
+  void deleteSession(CSPMSession * session);
+  CSPMSession * currentSession();
+  CSPMSession * blankSession();
+  void setCurrentSession(CSPMSession * session);
+  QList<CSPError *> getErrors();
+  void logError(CSPError *);
+  void deleteErrors(const QList<int> &);
+  void cleanup();
+
+signals:
+  void errorCountChanged(int);
 
 private:
-  static QMap<QString, CSPMSession *> _sessions;
-  static CSPMSession * _currentSession;
-  static CSPMSession * _blankSession;
-  static QList<CSPError *> _errors;
+  ProgramState(QObject * = 0);
+  static ProgramState state;
+  QMap<QString, CSPMSession *> _sessions;
+  CSPMSession * _currentSession;
+  CSPMSession * _blankSession;
+  QList<CSPError *> _errors;
 };
 
 #endif // PROGRAMSTATE_H

@@ -32,174 +32,216 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="53"/>
+        <location filename="mainwindow.cpp" line="54"/>
         <source>CSP Process Explorer</source>
         <translation>CSP Process Explorer</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="85"/>
+        <location filename="mainwindow.cpp" line="87"/>
         <source>&amp;Session</source>
         <translation>&amp;Session</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="87"/>
+        <location filename="mainwindow.cpp" line="89"/>
         <source>&amp;Open</source>
         <translation>&amp;Open</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="88"/>
+        <location filename="mainwindow.cpp" line="90"/>
         <source>Open a CSP file to explore.</source>
         <translation>Open a CSP file to explore.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="90"/>
+        <location filename="mainwindow.cpp" line="92"/>
         <source>Reload the CSP file into the current session.</source>
         <translation>Reload the CSP file into the current session.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="93"/>
+        <location filename="mainwindow.cpp" line="95"/>
         <source>Reload All</source>
         <translation>Reload All</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="94"/>
+        <location filename="mainwindow.cpp" line="96"/>
         <source>Reload all currently open sessions from their respective files.</source>
         <translation>Reload all currently open sessions from their respective files.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="97"/>
+        <location filename="mainwindow.cpp" line="99"/>
         <source>Close the current session and remove it from the list.</source>
         <translation>Close the current session and remove it from the list.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="101"/>
+        <location filename="mainwindow.cpp" line="103"/>
         <source>Close All</source>
         <translation>Close All</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="102"/>
+        <location filename="mainwindow.cpp" line="104"/>
         <source>Close all sessions and remove them from the list, and close all tabs.</source>
         <translation>Close all sessions and remove them from the list, and close all tabs.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="105"/>
+        <location filename="mainwindow.cpp" line="107"/>
         <source>Error log</source>
         <translation>Error log</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="106"/>
+        <location filename="mainwindow.cpp" line="108"/>
         <source>Show a log of all errors encountered.</source>
         <translation>Show a log of all errors encountered.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="108"/>
+        <location filename="mainwindow.cpp" line="110"/>
         <source>E&amp;xit</source>
         <translation>E&amp;xit</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="109"/>
+        <location filename="mainwindow.cpp" line="111"/>
         <source>Close the program.</source>
         <translation>Close the program.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="111"/>
+        <location filename="mainwindow.cpp" line="113"/>
         <source>&amp;Behaviour</source>
         <translation>&amp;Behaviour</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="114"/>
+        <location filename="mainwindow.cpp" line="116"/>
         <source>Synchronous Termination Semantics</source>
         <translation>Synchronous Termination Semantics</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="115"/>
+        <location filename="mainwindow.cpp" line="117"/>
         <source>Use the FDR 2 style behaviour for termination of processes in parallel.</source>
         <translation>Use the FDR 2 style behaviour for termination of processes in parallel.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="121"/>
+        <location filename="mainwindow.cpp" line="123"/>
         <source>Asynchronous Termination Semantics</source>
         <translation>Asynchronous Termination Semantics</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="122"/>
+        <location filename="mainwindow.cpp" line="124"/>
         <source>Use the Omega style behaviour for termination of processes in parallel.</source>
         <translation>Use the Omega style behaviour for termination of processes in parallel.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="207"/>
+        <location filename="mainwindow.cpp" line="225"/>
         <source>New Tab</source>
         <translation>New Tab</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="214"/>
+        <location filename="mainwindow.cpp" line="232"/>
         <source>Open a CSP file to begin, then double-click an expression
 in the pane on the left or enter it into the box above.</source>
         <translation>Open a CSP file to begin, then double-click an expression
 in the pane on the left or enter it into the box above.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="224"/>
+        <location filename="mainwindow.cpp" line="242"/>
         <source>Select file to open</source>
         <translation>Select file to open</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="225"/>
+        <location filename="mainwindow.cpp" line="243"/>
         <source>CSP definition files (*.csp);;All files (*.*)</source>
         <translation>CSP definition files (*.csp);;All files (*.*)</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="240"/>
+        <location filename="mainwindow.cpp" line="261"/>
         <source>Reloaded file: %1</source>
         <translation>Reloaded file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="244"/>
+        <location filename="mainwindow.cpp" line="265"/>
         <source>Error while reloading file: %1</source>
         <translation>Error while reloading file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="268"/>
+        <location filename="mainwindow.cpp" line="269"/>
+        <location filename="mainwindow.cpp" line="462"/>
+        <location filename="mainwindow.cpp" line="545"/>
+        <source>This error has been added to the error log.</source>
+        <translation>This error has been added to the error log.</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="295"/>
         <source>Successfully reloaded all open files.</source>
         <translation>Successfully reloaded all open files.</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="272"/>
+        <location filename="mainwindow.cpp" line="299"/>
         <source>Error while reloading the following sessions: %1</source>
         <translation>Error while reloading the following sessions: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="403"/>
+        <location filename="mainwindow.cpp" line="304"/>
+        <source>Do you want to open the error log?</source>
+        <translation>Do you want to open the error log?</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="457"/>
         <source>Error while loading file: %1</source>
         <translation>Error while loading file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="407"/>
+        <location filename="mainwindow.cpp" line="468"/>
         <source>Loaded file: %1</source>
         <translation>Loaded file: %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="419"/>
+        <location filename="mainwindow.cpp" line="490"/>
         <source>Close %1</source>
         <translation>Close %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="421"/>
+        <location filename="mainwindow.cpp" line="492"/>
         <source>Reload %1</source>
         <translation>Reload %1</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="468"/>
+        <location filename="mainwindow.cpp" line="539"/>
         <source>Invalid expression for the current file.</source>
         <translation>Invalid expression for the current file.</translation>
     </message>
     <message numerus="yes">
-        <location filename="mainwindow.cpp" line="480"/>
+        <location filename="mainwindow.cpp" line="559"/>
         <source>%n error(s)</source>
         <translation>
             <numerusform>%n error</numerusform>
             <numerusform>%n errors</numerusform>
         </translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="585"/>
+        <source>Reload</source>
+        <translation>Reload</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="586"/>
+        <source>Close</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="602"/>
+        <source>Probe</source>
+        <translation>Probe</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="603"/>
+        <source>Probe (New Tab)</source>
+        <translation>Probe (New Tab)</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="604"/>
+        <source>Inspect</source>
+        <translation>Inspect</translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="605"/>
+        <source>Inspect (New Tab)</source>
+        <translation>Inspect (New Tab)</translation>
     </message>
 </context>
 <context>
@@ -537,31 +579,31 @@ in the pane on the left or enter it into the box above.</translation>
 <context>
     <name>QObject</name>
     <message>
-        <location filename="model/event.cpp" line="156"/>
+        <location filename="model/event.cpp" line="158"/>
         <source> and %1</source>
         <translation> and %1</translation>
     </message>
     <message>
-        <location filename="model/event.cpp" line="160"/>
+        <location filename="model/event.cpp" line="162"/>
         <source> or %1</source>
         <translation> or %1</translation>
     </message>
     <message>
-        <location filename="model/process.cpp" line="268"/>
+        <location filename="model/process.cpp" line="275"/>
         <source>The event given is not valid.</source>
         <translation>The event given is not valid.</translation>
     </message>
     <message>
-        <location filename="model/process.cpp" line="269"/>
+        <location filename="model/process.cpp" line="276"/>
         <source>This component is not relevant to your query.</source>
         <translation>This component is not relevant to your query.</translation>
     </message>
     <message numerus="yes">
-        <location filename="model/process.cpp" line="276"/>
+        <location filename="model/process.cpp" line="283"/>
         <source>This component offers the event(s) %1.</source>
         <translation>
             <numerusform>This component offers the event %1.</numerusform>
-            <numerusform>This component offers the events %1.</numerusform>
+            <numerusform>This component offers at least one of %1.</numerusform>
         </translation>
     </message>
 </context>
@@ -573,7 +615,7 @@ in the pane on the left or enter it into the box above.</translation>
         <translation>Type an event here to see why it is/is not offered...</translation>
     </message>
     <message>
-        <location filename="widget/tab.cpp" line="220"/>
+        <location filename="widget/tab.cpp" line="223"/>
         <source>Select an item for details.</source>
         <translation>Select an item for details.</translation>
     </message>

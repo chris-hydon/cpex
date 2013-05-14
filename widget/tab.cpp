@@ -130,7 +130,8 @@ void Tab::setupInspector(const Expression & expr)
 
   _tree = new ProcessTree(expr.process().session(), this);
   _tree->setHeaderHidden(true);
-  InspectModel * m = new InspectModel(expr.process(), _tree);
+  InspectModel * m = new InspectModel(expr.process(),
+    behaviour(AsynchronousTermination), _tree);
   _tree->setModel(m);
   layout()->addWidget(_tree);
 
